@@ -4,143 +4,334 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Escape Room</title>
+
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
 
-  :root {
-    --bg: #0d0d0d;
-    --surface: #141414;
-    --surface2: #1c1c1c;
-    --border: #2a2a2a;
-    --border2: #3a3a3a;
-    --text: #e8e3d8;
-    --text2: #8a8278;
-    --text3: #5a5550;
-    --accent: #c8a96e;
-    --accent2: #8b5c2a;
-    --green: #4a7c59;
-    --green-light: #6aaf7e;
-    --red: #7c3a3a;
-    --red-light: #c05a5a;
-    --mono: 'Share Tech Mono', monospace;
-    --serif: 'Crimson Pro', Georgia, serif;
-  }
+:root {
+  --bg: #0b0b0b;
+  --surface: rgba(20,20,20,0.75);
+  --surface2: rgba(28,28,28,0.75);
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8e3d8;
+  --text2: #9a9288;
+  --text3: #6a645d;
+  --accent: #d6b36d;
+  --accent2: #9c6a2f;
+  --green: #4a7c59;
+  --green-light: #7fd39a;
+  --red: #7c3a3a;
+  --red-light: #ff6b6b;
+  --mono: 'Share Tech Mono', monospace;
+  --serif: 'Crimson Pro', Georgia, serif;
+}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+}
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--mono);
-    min-height: 100vh;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 2rem 1rem 4rem;
-  }
+body {
+  margin: 0;
+  background: radial-gradient(circle at 30% 10%, #1a1a1a 0%, #0b0b0b 60%);
+  color: var(--text);
+  font-family: var(--mono);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem 4rem;
+  overflow-x: hidden;
+}
 
-  #app { width: 100%; max-width: 700px; }
+/* subtle film grain overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255,255,255,0.02) 3px
+  );
+  mix-blend-mode: overlay;
+}
 
-  .hud {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 16px; border: 0.5px solid var(--border2);
-    border-bottom: none; background: var(--surface); border-radius: 4px 4px 0 0;
-  }
-  .hud-left { display: flex; flex-direction: column; gap: 2px; }
-  .chamber-label { font-size: 10px; color: var(--text3); letter-spacing: 0.15em; text-transform: uppercase; }
-  .chamber-name { font-size: 13px; color: var(--accent); }
-  .hud-right { display: flex; align-items: center; gap: 16px; }
-  .timer { font-size: 20px; color: var(--text); letter-spacing: 0.05em; font-variant-numeric: tabular-nums; transition: color 0.3s; }
-  .timer.urgent { color: var(--red-light); }
-  .hearts { display: flex; gap: 5px; align-items: center; }
-  .heart { width: 14px; height: 14px; background: var(--red-light); clip-path: polygon(50% 90%,12% 40%,3% 22%,15% 8%,30% 8%,50% 28%,70% 8%,85% 8%,97% 22%,88% 40%); transition: background 0.3s; }
-  .heart.lost { background: var(--border2); }
+#app {
+  width: 100%;
+  max-width: 720px;
+  animation: fadeIn 0.6s ease;
+}
 
-  .frame { border: 0.5px solid var(--border2); background: var(--surface); border-radius: 0 0 4px 4px; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-  .scene { padding: 1.5rem; border-bottom: 0.5px solid var(--border); }
-  .atmo { font-size: 10px; color: var(--text3); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 1rem; }
-  .atmo::before { content: '// '; }
-  .narrative { font-family: var(--serif); font-size: 16px; font-style: italic; color: var(--text2); line-height: 1.85; margin-bottom: 1.25rem; padding-left: 14px; border-left: 1px solid var(--border2); }
-  .clue-box { background: var(--surface2); border: 0.5px solid var(--border2); border-radius: 3px; padding: 14px 16px; font-family: var(--mono); font-size: 12.5px; color: var(--text); line-height: 2; white-space: pre-wrap; }
-  .clue-label { font-size: 9px; color: var(--text3); letter-spacing: 0.15em; display: block; margin-bottom: 10px; }
+/* HUD */
+.hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px 10px 0 0;
+  backdrop-filter: blur(10px);
+}
 
-  .puzzle-area { padding: 1.5rem; }
-  .puzzle-q { font-size: 13.5px; color: var(--accent); line-height: 1.7; margin-bottom: 1.25rem; }
-  .puzzle-q::before { content: '> '; color: var(--text3); }
+.chamber-label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text3);
+}
 
-  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
-  .choice { border: 0.5px solid var(--border2); background: var(--surface2); padding: 12px 14px; cursor: pointer; text-align: left; border-radius: 3px; transition: border-color 0.15s, background 0.15s; font-family: var(--mono); }
-  .choice:hover { border-color: var(--accent2); background: #1f1a14; }
-  .choice-label { font-size: 13px; color: var(--text); display: block; margin-bottom: 4px; }
-  .choice-sub { font-size: 11px; color: var(--text3); display: block; line-height: 1.5; }
-  .choice.correct { border-color: var(--green-light); background: #0f1f14; }
-  .choice.correct .choice-label { color: var(--green-light); }
-  .choice.wrong { border-color: var(--red-light); background: #1f0f0f; }
-  .choice.wrong .choice-label { color: var(--red-light); }
+.chamber-name {
+  font-size: 14px;
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(214,179,109,0.2);
+}
 
-  .input-row { display: flex; gap: 8px; margin-bottom: 1.25rem; }
-  .code-input { flex: 1; background: var(--surface2); border: 0.5px solid var(--border2); border-radius: 3px; padding: 10px 14px; font-family: var(--mono); font-size: 15px; letter-spacing: 0.12em; color: var(--text); outline: none; transition: border-color 0.15s; }
-  .code-input:focus { border-color: var(--accent2); }
-  .code-input.correct { border-color: var(--green-light); color: var(--green-light); }
-  .code-input.wrong-flash { border-color: var(--red-light); }
-  .confirm-btn { padding: 10px 18px; background: none; border: 0.5px solid var(--border2); border-radius: 3px; color: var(--text2); font-family: var(--mono); font-size: 12px; cursor: pointer; letter-spacing: 0.08em; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
-  .confirm-btn:hover { border-color: var(--accent); color: var(--accent); }
+.timer {
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  transition: 0.3s;
+}
 
-  .feedback { font-family: var(--serif); font-size: 14px; padding: 10px 14px; border-radius: 3px; margin-bottom: 1.25rem; line-height: 1.7; display: none; }
-  .feedback.good { display: block; background: #0f1f14; border: 0.5px solid var(--green); color: #a8d4b4; }
-  .feedback.bad { display: block; background: #1f0f0f; border: 0.5px solid var(--red); color: #d4a0a0; }
+.timer.urgent {
+  color: var(--red-light);
+  text-shadow: 0 0 10px rgba(255,107,107,0.4);
+}
 
-  .hint-row { margin-bottom: 1.25rem; }
-  .hint-btn { font-size: 11px; color: var(--text3); background: none; border: none; cursor: pointer; font-family: var(--mono); letter-spacing: 0.06em; padding: 0; transition: color 0.15s; }
-  .hint-btn:hover { color: var(--text2); }
-  .hint-text { font-family: var(--serif); font-style: italic; font-size: 13px; color: var(--text3); margin-top: 8px; padding: 8px 12px; background: var(--surface2); border-radius: 3px; line-height: 1.7; display: none; }
+.heart {
+  width: 14px;
+  height: 14px;
+  background: var(--red-light);
+  clip-path: polygon(50% 90%,12% 40%,3% 22%,15% 8%,30% 8%,50% 28%,70% 8%,85% 8%,97% 22%,88% 40%);
+  transition: 0.3s;
+}
 
-  .bottom-row { display: flex; justify-content: flex-end; padding-top: 4px; }
-  .proceed-btn { padding: 10px 20px; background: none; border: 0.5px solid var(--accent2); border-radius: 3px; color: var(--accent); font-family: var(--mono); font-size: 12px; cursor: pointer; letter-spacing: 0.08em; display: none; transition: background 0.15s; }
-  .proceed-btn:hover { background: #1f1a14; }
+.heart.lost {
+  background: #2a2a2a;
+}
 
-  .progress-strip { display: flex; gap: 4px; justify-content: center; margin-top: 1rem; }
-  .pip { width: 28px; height: 3px; background: var(--border2); border-radius: 2px; transition: background 0.4s; }
-  .pip.done { background: var(--green); }
-  .pip.active { background: var(--accent); }
+/* FRAME */
+.frame {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
 
-  .end-screen { display: none; text-align: center; padding: 4rem 2rem; background: var(--surface); border: 0.5px solid var(--border2); border-radius: 4px; }
-  .end-screen.show { display: block; }
-  .end-glyph { font-size: 52px; display: block; margin-bottom: 1.5rem; }
-  .end-title { font-family: var(--serif); font-size: 26px; color: var(--accent); margin-bottom: 0.75rem; font-weight: 600; }
-  .end-body { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--text2); line-height: 1.85; margin-bottom: 1.5rem; max-width: 440px; margin-left: auto; margin-right: auto; }
-  .end-meta { font-size: 11px; color: var(--text3); margin-bottom: 2rem; letter-spacing: 0.1em; }
-  .replay-btn { padding: 12px 28px; background: none; border: 0.5px solid var(--accent2); border-radius: 3px; color: var(--accent); font-family: var(--mono); font-size: 12px; cursor: pointer; letter-spacing: 0.1em; transition: background 0.15s; }
-  .replay-btn:hover { background: #1f1a14; }
+/* SCENE */
+.scene {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
 
-  body::after { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px); pointer-events: none; z-index: 9999; }
+.atmo {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--text3);
+  margin-bottom: 1rem;
+}
 
-  @media (max-width: 520px) {
-    .choices { grid-template-columns: 1fr; }
-    .hud { flex-wrap: wrap; gap: 8px; }
-  }
+.atmo::before {
+  content: "// ";
+}
+
+.narrative {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--text2);
+  line-height: 1.8;
+  border-left: 2px solid var(--border2);
+  padding-left: 12px;
+  margin-bottom: 1.2rem;
+}
+
+/* CLUE BOX */
+.clue-box {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+}
+
+.clue-label {
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.15em;
+}
+
+/* PUZZLE */
+.puzzle-area {
+  padding: 1.5rem;
+}
+
+.puzzle-q {
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.puzzle-q::before {
+  content: "> ";
+  color: var(--text3);
+}
+
+/* INPUT */
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.code-input {
+  flex: 1;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: rgba(0,0,0,0.3);
+  color: var(--text);
+  letter-spacing: 0.1em;
+  transition: 0.2s;
+}
+
+.code-input:focus {
+  border-color: var(--accent2);
+  box-shadow: 0 0 10px rgba(156,106,47,0.2);
+  outline: none;
+}
+
+.confirm-btn {
+  padding: 10px 14px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.confirm-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* CHOICES */
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.choice {
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: rgba(0,0,0,0.2);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.choice:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent2);
+}
+
+.choice.correct {
+  border-color: var(--green-light);
+  background: rgba(127,211,154,0.08);
+}
+
+.choice.wrong {
+  border-color: var(--red-light);
+  background: rgba(255,107,107,0.08);
+}
+
+/* FEEDBACK */
+.feedback {
+  margin-top: 1rem;
+  padding: 10px;
+  border-radius: 6px;
+  display: none;
+}
+
+.feedback.good {
+  display: block;
+  border: 1px solid var(--green);
+  background: rgba(74,124,89,0.15);
+}
+
+.feedback.bad {
+  display: block;
+  border: 1px solid var(--red);
+  background: rgba(124,58,58,0.15);
+}
+
+/* BUTTONS */
+.proceed-btn {
+  margin-top: 1rem;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--accent2);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.proceed-btn:hover {
+  background: rgba(156,106,47,0.15);
+}
+
+/* END SCREEN */
+.end-screen {
+  display: none;
+  text-align: center;
+  padding: 3rem;
+}
+
+.end-screen.show {
+  display: block;
+}
+
+.end-glyph {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.end-title {
+  font-size: 24px;
+  color: var(--accent);
+}
+
+.replay-btn {
+  margin-top: 1rem;
+  padding: 10px 18px;
+  border: 1px solid var(--accent2);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+}
 </style>
 </head>
-<body>
-<div id="app">
-  <div id="hud" class="hud">
-    <div class="hud-left">
-      <span class="chamber-label" id="chamber-label">Chamber 1 of 8</span>
-      <span class="chamber-name" id="chamber-name"></span>
-    </div>
-    <div class="hud-right">
-      <span class="timer" id="timer">60:00</span>
-      <div class="hearts" id="hearts"></div>
-    </div>
-  </div>
 
+<body>
+
+<div id="app">
+  <div id="hud" class="hud"></div>
   <div class="frame" id="frame">
     <div class="scene" id="scene"></div>
     <div class="puzzle-area" id="puzzle-area"></div>
   </div>
-
-  <div class="progress-strip" id="progress-strip"></div>
   <div class="end-screen" id="end-screen"></div>
 </div>
 
