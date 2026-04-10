@@ -1,800 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Escape Room</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Escape Room Game</title>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
-
-:root {
-  --bg: #0b0b0b;
-  --surface: rgba(20,20,20,0.75);
-  --surface2: rgba(28,28,28,0.75);
-  --border: rgba(255,255,255,0.06);
-  --border2: rgba(255,255,255,0.12);
-  --text: #e8e3d8;
-  --text2: #9a9288;
-  --text3: #6a645d;
-  --accent: #d6b36d;
-  --accent2: #9c6a2f;
-  --green: #4a7c59;
-  --green-light: #7fd39a;
-  --red: #7c3a3a;
-  --red-light: #ff6b6b;
-  --mono: 'Share Tech Mono', monospace;
-  --serif: 'Crimson Pro', Georgia, serif;
-}
-
-* {
-  box-sizing: border-box;
-}
-
 body {
   margin: 0;
-  background: radial-gradient(circle at 30% 10%, #1a1a1a 0%, #0b0b0b 60%);
-  color: var(--text);
-  font-family: var(--mono);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  padding: 2rem 1rem 4rem;
-  overflow-x: hidden;
-}
-
-/* subtle film grain overlay */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(255,255,255,0.02) 3px
-  );
-  mix-blend-mode: overlay;
-}
-
-#app {
-  width: 100%;
-  max-width: 720px;
-  animation: fadeIn 0.6s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* HUD */
-.hud {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: 10px 10px 0 0;
-  backdrop-filter: blur(10px);
-}
-
-.chamber-label {
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  color: var(--text3);
-}
-
-.chamber-name {
-  font-size: 14px;
-  color: var(--accent);
-  text-shadow: 0 0 10px rgba(214,179,109,0.2);
-}
-
-.timer {
-  font-size: 20px;
-  letter-spacing: 0.08em;
-  transition: 0.3s;
-}
-
-.timer.urgent {
-  color: var(--red-light);
-  text-shadow: 0 0 10px rgba(255,107,107,0.4);
-}
-
-.heart {
-  width: 14px;
-  height: 14px;
-  background: var(--red-light);
-  clip-path: polygon(50% 90%,12% 40%,3% 22%,15% 8%,30% 8%,50% 28%,70% 8%,85% 8%,97% 22%,88% 40%);
-  transition: 0.3s;
-}
-
-.heart.lost {
-  background: #2a2a2a;
-}
-
-/* FRAME */
-.frame {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-top: none;
-  border-radius: 0 0 10px 10px;
-  backdrop-filter: blur(10px);
+  font-family: Arial;
+  background: #0b0b0b;
+  color: white;
   overflow: hidden;
 }
 
-/* SCENE */
-.scene {
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border);
+#game {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: 0.5s;
 }
 
-.atmo {
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  color: var(--text3);
-  margin-bottom: 1rem;
+.room {
+  width: 70%;
+  max-width: 800px;
+  padding: 20px;
+  border: 1px solid #333;
+  background: #141414;
+  box-shadow: 0 0 20px black;
+  animation: fadeIn 0.5s ease;
 }
 
-.atmo::before {
-  content: "// ";
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.title {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: #caa86a;
 }
 
 .narrative {
-  font-family: var(--serif);
-  font-style: italic;
-  color: var(--text2);
-  line-height: 1.8;
-  border-left: 2px solid var(--border2);
-  padding-left: 12px;
-  margin-bottom: 1.2rem;
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 20px;
 }
 
-/* CLUE BOX */
-.clue-box {
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  border-radius: 6px;
-  padding: 14px;
-  font-size: 12px;
-  line-height: 1.9;
-  white-space: pre-wrap;
+.puzzle {
+  margin-top: 10px;
 }
 
-.clue-label {
-  font-size: 10px;
-  color: var(--text3);
-  letter-spacing: 0.15em;
-}
-
-/* PUZZLE */
-.puzzle-area {
-  padding: 1.5rem;
-}
-
-.puzzle-q {
-  color: var(--accent);
-  margin-bottom: 1rem;
-}
-
-.puzzle-q::before {
-  content: "> ";
-  color: var(--text3);
-}
-
-/* INPUT */
-.input-row {
+.lock {
   display: flex;
-  gap: 8px;
-}
-
-.code-input {
-  flex: 1;
-  padding: 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border2);
-  background: rgba(0,0,0,0.3);
-  color: var(--text);
-  letter-spacing: 0.1em;
-  transition: 0.2s;
-}
-
-.code-input:focus {
-  border-color: var(--accent2);
-  box-shadow: 0 0 10px rgba(156,106,47,0.2);
-  outline: none;
-}
-
-.confirm-btn {
-  padding: 10px 14px;
-  border: 1px solid var(--border2);
-  background: transparent;
-  color: var(--text2);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.confirm-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-1px);
-}
-
-/* CHOICES */
-.choices {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
-.choice {
-  padding: 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border2);
-  background: rgba(0,0,0,0.2);
+.dial {
+  width: 60px;
+  height: 60px;
+  background: #222;
+  border: 1px solid #555;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   cursor: pointer;
-  transition: 0.2s;
+  font-size: 22px;
 }
 
-.choice:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent2);
-}
-
-.choice.correct {
-  border-color: var(--green-light);
-  background: rgba(127,211,154,0.08);
-}
-
-.choice.wrong {
-  border-color: var(--red-light);
-  background: rgba(255,107,107,0.08);
-}
-
-/* FEEDBACK */
-.feedback {
-  margin-top: 1rem;
+button {
+  margin-top: 10px;
   padding: 10px;
-  border-radius: 6px;
-  display: none;
-}
-
-.feedback.good {
-  display: block;
-  border: 1px solid var(--green);
-  background: rgba(74,124,89,0.15);
-}
-
-.feedback.bad {
-  display: block;
-  border: 1px solid var(--red);
-  background: rgba(124,58,58,0.15);
-}
-
-/* BUTTONS */
-.proceed-btn {
-  margin-top: 1rem;
-  padding: 10px 16px;
-  border-radius: 6px;
-  border: 1px solid var(--accent2);
-  background: transparent;
-  color: var(--accent);
+  background: #222;
+  color: white;
+  border: 1px solid #444;
   cursor: pointer;
-  transition: 0.2s;
 }
 
-.proceed-btn:hover {
-  background: rgba(156,106,47,0.15);
+button:hover {
+  background: #333;
 }
 
-/* END SCREEN */
-.end-screen {
-  display: none;
-  text-align: center;
-  padding: 3rem;
-}
-
-.end-screen.show {
-  display: block;
-}
-
-.end-glyph {
-  font-size: 48px;
-  display: block;
-  margin-bottom: 1rem;
-}
-
-.end-title {
-  font-size: 24px;
-  color: var(--accent);
-}
-
-.replay-btn {
-  margin-top: 1rem;
-  padding: 10px 18px;
-  border: 1px solid var(--accent2);
-  background: transparent;
-  color: var(--accent);
-  cursor: pointer;
+#hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: #888;
 }
 </style>
 </head>
 
 <body>
 
-<div id="app">
-  <div id="hud" class="hud"></div>
-  <div class="frame" id="frame">
-    <div class="scene" id="scene"></div>
-    <div class="puzzle-area" id="puzzle-area"></div>
-  </div>
-  <div class="end-screen" id="end-screen"></div>
-</div>
+<div id="hud">Room: 1 | Lives: 3</div>
+<div id="game"></div>
 
 <script>
-const rooms = [
-  {
-    title: "The Keeper's Study",
-    atmo: "dust · candlelight · old paper",
-    narrative: "You wake slumped against a heavy oak desk, a ringing in your ears. Rows of leather-bound books line the walls floor to ceiling. The only exit is sealed with a brass combination lock — four dials, each numbered 0 through 9. A note in shaky handwriting is pinned under a candlestick.",
-    clue: `NOTE (pinned to desk):
-"The combination is hidden in this room.
- You must work out each dial independently.
+const Game = {
+  room: 0,
+  lives: 3,
 
- DIAL 1 — The portrait above the fireplace is dedicated:
-           'To my father, born in the year the Bastille fell.'
-           Take only the LAST digit of that year.
+  rooms: [
+    {
+      title: "The Locked Door",
+      text: "A 3-digit lock blocks your exit.",
+      answer: "123"
+    },
+    {
+      title: "Second Chamber",
+      text: "Another lock appears.",
+      answer: "456"
+    },
+    {
+      title: "Final Door",
+      text: "This is the last one.",
+      answer: "789"
+    }
+  ],
 
- DIAL 2 — On the shelf labelled MATHEMATICS, find the book
-           titled 'On Primes.' Count all prime numbers that
-           exist between 1 and 20, inclusive. That count is dial 2.
-
- DIAL 3 — The desk drawer holds a page with one word: LOCK
-           Using A=1, B=2, C=3...Z=26, sum the letter values.
-           Keep adding the digits of your result until you have
-           a single digit. That is dial 3.
-
- DIAL 4 — A stopped clock on the mantle shows a time that is
-           exactly 2 hours and 20 minutes before noon.
-           Dial 4 is the hour shown on that clock."`,
-    question: "Enter all four dial digits together as a 4-digit code: (Dial1)(Dial2)(Dial3)(Dial4)",
-    type: "input",
-    answer: "9839",
-    altAnswers: [],
-    realHint: "Dial 1: The Bastille fell in 1789 — last digit is 9. Dial 2: Primes between 1–20 are 2,3,5,7,11,13,17,19 — that's 8 primes. Dial 3: L=12, O=15, C=3, K=11 → total 41 → 4+1=5. Wait, re-examine: 12+15+3+11=41 → 4+1=5. Hmm but answer expects 3 — check: is it LOCK or another word? The clue says LOCK: L(12)+O(15)+C(3)+K(11)=41→5. Dial 4: 2h20m before noon = 9:40 — the hour is 9. So: 9,8,5,9 = 9859. Work each step carefully.",
-    success: "Click. Click. Click. Click. The four brass dials align and the lock releases. The study door swings inward with a groan of ancient hinges. Cold corridor air washes over you.",
-    fail: "The dials resist. A soft mechanical buzz. Wrong combination — isolate each dial and work through it separately before combining."
+  init() {
+    this.render();
   },
-  {
-    title: "The Cartographer's Archive",
-    atmo: "ink · vellum · compass needles spinning",
-    narrative: "Maps cover every surface — oceans, continents, trade routes, celestial charts. A locked iron chest sits bolted to the central table. Its lid bears an engraved grid. A rolled scroll sealed with red wax rests beside it, marked: 'FOR THE NAVIGATOR WHO EARNS IT.'",
-    clue: `SCROLL (broken seal, unrolled):
-"Four coordinates unlock this chest.
- Each is a single digit, 1 through 9.
 
- COORD A — How many planets in our solar system
-           have confirmed rings? (Count all, not just Saturn.)
+  render() {
+    const r = this.rooms[this.room];
 
- COORD B — The Greenwich Meridian is 0° longitude.
-           The International Date Line sits at approximately
-           180° on the opposite side. Multiply those two
-           degree values together, then reduce the result
-           to a single digit by summing its digits repeatedly.
+    document.getElementById("hud").innerText =
+      `Room: ${this.room + 1} | Lives: ${this.lives}`;
 
- COORD C — A nautical mile is defined as one minute of arc
-           along a meridian. How many minutes of arc are in
-           one degree? Reduce that number to a single digit.
+    const game = document.getElementById("game");
 
- COORD D — Vasco da Gama reached India by sea in 1498.
-           Christopher Columbus first reached the Americas in 1492.
-           Find the difference between those years.
-           That difference is Coord D."`,
-    question: "Enter the four coordinates as one 4-digit number: (A)(B)(C)(D)",
-    type: "input",
-    answer: "4966",
-    altAnswers: [],
-    realHint: "A: Ringed planets — Jupiter, Saturn, Uranus, Neptune = 4. B: 0 × 180 = 0... that gives 0 which isn't 1–9. Re-read: maybe it means 180° itself → 1+8+0=9. C: 1 degree = 60 minutes of arc → 6+0=6. D: 1498−1492=6. So coords: 4,9,6,6 = 4966.",
-    success: "The chest lock disengages with four clean clicks. Inside: a rolled star chart, a brass key, and a note that reads 'The engine awaits.' You pocket everything.",
-    fail: "The chest stays locked. Work each coordinate in isolation — some involve reducing multi-digit numbers to a single digit by repeated digit-summing."
+    game.innerHTML = `
+      <div class="room">
+        <div class="title">${r.title}</div>
+        <div class="narrative">${r.text}</div>
+
+        <div class="puzzle">
+          ${this.lockUI(r.answer)}
+        </div>
+      </div>
+    `;
+
+    this.bindLock(r.answer);
   },
-  {
-    title: "The Cipher Engine Room",
-    atmo: "clicking rotors · heat · the smell of machine oil",
-    narrative: "A vast mechanical cipher machine dominates the room — brass rotors, ivory keys, paper tape spooling from a slot. A glass case on the wall holds a single folded message stamped CLASSIFIED. A brass plaque beside the machine reads: 'Decode the message. Set the rotors. Proceed.'",
-    clue: `GLASS CASE contains:
 
-1. ENCODED MESSAGE (stamped in red ink):
-   WKUHH IRXU VHYHQ
-
-2. ROTOR INSTRUCTION CARD:
-   "This machine applies a Caesar cipher — every letter is
-    shifted forward in the alphabet by a fixed number.
-
-    The shift value equals the number of sides on a standard
-    die, minus one.
-
-    Once decoded, the message contains three words.
-    Each word is a spelled-out number.
-
-    Add those three numbers together.
-    Enter the sum as your rotor code."`,
-    question: "Decode the message, identify the three numbers, sum them, and enter the total.",
-    type: "input",
-    answer: "14",
-    altAnswers: [],
-    realHint: "A standard die has 6 sides. Shift = 6−1 = 5. Decode each letter by going back 5 in the alphabet: W→R, K→F, U→P... Wait: Caesar cipher 'shifted forward by 5' means to decode you shift BACK by 5. W(22)−5=R(17)... let's try shift 3 instead: W→T, K→H, U→R → THR... WKUHH with shift 3 back: W→T, K→H, U→R, H→E, H→E = THREE. IRXU: I→F,R→O,X→U,U→R = FOUR. VHYHQ: V→S,H→E,Y→V,H→E,Q→N = SEVEN. THREE + FOUR + SEVEN = 3+4+7 = 14.",
-    success: "The rotors click into alignment. The machine whirs and prints: CORRECT SEQUENCE. A gear-lined door at the far end of the room slides open with a satisfying clunk.",
-    fail: "The rotors jam. Reconsider your shift value — work out the die calculation, then try decoding the first word letter by letter to verify."
+  lockUI(answer) {
+    return `
+      <div class="lock">
+        <div class="dial" data-i="0">0</div>
+        <div class="dial" data-i="1">0</div>
+        <div class="dial" data-i="2">0</div>
+      </div>
+      <button onclick="Game.check()">ENTER</button>
+    `;
   },
-  {
-    title: "The Alchemist's Laboratory",
-    atmo: "bubbling flasks · acrid sulfur · stone floors cold underfoot",
-    narrative: "Rows of coloured vials line every shelf, each labelled with a chemical symbol. A locked iron cabinet dominates the far wall. The combination is written nowhere — you must calculate it from the formula board.",
-    clue: `FORMULA BOARD (chalked on slate):
-"To open the cabinet, you need two numbers.
 
- NUMBER ONE — The molecular weight of water (H₂O).
-   Atomic weights: H = 1,  O = 16,  N = 14,  C = 12
-
- NUMBER TWO — The molecular weight of ammonia (NH₃).
-   (Same atomic weight table above.)
-
- Enter NUMBER ONE followed immediately by NUMBER TWO
- as a single combined number with no spaces.
-
- ---
- CROSS-CHECK carved into the cabinet door:
- 'The sum of both molecular weights must equal
-  the number of years between 1780 and 1797.
-  If it does not, you have made an error.'"`,
-    question: "Enter the molecular weight of H₂O followed by the molecular weight of NH₃ as one combined number.",
-    type: "input",
-    answer: "1817",
-    altAnswers: [],
-    realHint: "H₂O: 2×1 + 16 = 18. NH₃: 14 + 3×1 = 17. Combined: 1817. Cross-check: 18+17=35, and 1797−1780=17... they don't match — the cross-check is a deliberate red herring to make you doubt correct arithmetic. Trust the chemistry.",
-    success: "The cabinet swings open. Inside: three labelled vials and a folded map fragment. The map shows a dome — an observatory. You take everything and move on.",
-    fail: "Wrong combination. Calculate each molecular weight separately, counting every atom in the formula including the subscript numbers."
-  },
-  {
-    title: "The Observatory",
-    atmo: "cold glass · star charts · the slow mechanical breath of the telescope",
-    narrative: "A great brass telescope points through a sealed dome shutter. The room smells of oil and cold night air. A panel of five numbered switches controls the shutter mechanism — only the correct sequence opens it. A leather logbook lies open on the observer's chair, its pages dog-eared.",
-    clue: `LOGBOOK — final entry, dated and signed:
-"The shutter sequence is encoded in these observations.
- Each fact yields one switch number.
-
- SWITCH 1:
-   The International Space Station orbits Earth roughly
-   every 92 minutes. How many full orbits does it complete
-   in exactly one day (24 hours)? Round DOWN to whole number.
-
- SWITCH 2:
-   Neptune was discovered in 1846. Pluto was discovered in 1930.
-   Subtract the earlier year from the later. Sum the digits
-   of the result until you have one digit.
-
- SWITCH 3:
-   A solar eclipse occurs when the Moon passes between Earth
-   and the Sun. There are exactly this many types of solar eclipse
-   (total, annular, partial, hybrid). That count is Switch 3.
-
- SWITCH 4:
-   The Milky Way galaxy contains an estimated 100–400 billion stars.
-   Take the LOWER estimate. Count its digits.
-
- SWITCH 5:
-   Light travels at 299,792 kilometres per second.
-   Round to the nearest hundred thousand.
-   Sum the digits of the rounded number."`,
-    question: "Enter all 5 switch numbers in order as a 5-digit sequence.",
-    type: "input",
-    answer: "15434",
-    altAnswers: ["15444"],
-    realHint: "S1: 24×60=1440 minutes per day ÷ 92 = 15.65 → floor = 15. S2: 1930−1846=84 → 8+4=12 → 1+2=3. Hmm, that's 3 not 5. S3: 4 types of eclipse. S4: 100 billion = 100,000,000,000 → count digits = 12 → 1+2=3. S5: 299,792 rounded to nearest 100,000 = 300,000 → 3+0+0+0+0+0=3. So: 15,3,4,3,3 = 15343. Work each carefully.",
-    success: "Five clicks in sequence. The dome shutter grinds open with a mechanical roar, flooding the room with cold starlight. A trapdoor beneath the telescope swings upward.",
-    fail: "The panel buzzes. One or more switches are wrong. Work each observation independently — some numbers need repeated digit reduction."
-  },
-  {
-    title: "The Warden's Interrogation Room",
-    atmo: "single hanging bulb · metal chair · one-way glass",
-    narrative: "A sparse, oppressive room. One metal chair. One table. One light swinging overhead. Five folders are spread on the table, each labelled with a suspect's name. The electronic door will only release when you identify the correct suspect. The warden's handwritten note reads: 'Logic only. One answer satisfies all the evidence simultaneously.'",
-    clue: `FIVE SUSPECTS: Ada, Bart, Cora, Dean, Eve
-
-EVIDENCE:
-  [1] The culprit was alone in the east wing at 10 PM.
-
-  [2] Ada was seen leaving the building at 8:45 PM
-      by two independent witnesses.
-
-  [3] Bart and Dean carpooled together and were confirmed
-      at a restaurant until 11 PM — a receipt proves it.
-
-  [4] Cora's keycard shows she badged OUT at 9:30 PM
-      and did not badge back in.
-
-  [5] Eve's keycard shows she badged IN to the east wing
-      at 9:55 PM and did not badge out until 10:15 PM.
-
-  [6] The culprit had an active keycard for the east wing.
-      Ada's access was revoked in July.
-
-  [7] Security footage shows only ONE person in the east
-      wing between 9:55 PM and 10:15 PM.`,
-    question: "Who is the culprit? Apply every piece of evidence — only one person satisfies all seven constraints.",
-    type: "choice",
-    choices: [
-      { label: "Ada", sub: "Left at 8:45 PM, east wing access revoked" },
-      { label: "Bart", sub: "At restaurant with Dean until 11 PM" },
-      { label: "Cora", sub: "Badged out at 9:30 PM, never returned" },
-      { label: "Eve", sub: "East wing keycard: 9:55–10:15 PM" }
-    ],
-    answer: 3,
-    realHint: "Constraint by constraint: Ada left at 8:45 PM (clue 2) and lost east wing access (clue 6) — eliminated. Bart and Dean were at a restaurant together until 11 PM (clue 3) — both eliminated, and culprit was alone. Cora badged out at 9:30 PM and never returned (clue 4) — eliminated. Eve's keycard places her alone in the east wing from 9:55–10:15 PM (clues 5 and 7), which overlaps 10 PM. Eve is the only one who satisfies all constraints.",
-    success: "CONFIRMED. The door emits a single green tone. You were right — Eve is the only suspect whose presence is confirmed at the exact time, in the exact location, alone. The glass slides aside.",
-    fail: "Red light. One of your eliminated suspects actually cannot be ruled out, or you've picked someone who can be. Re-apply every clue simultaneously."
-  },
-  {
-    title: "The Clockmaker's Workshop",
-    atmo: "ticking from every wall · sawdust · the smell of brass and oil",
-    narrative: "Hundreds of clocks cover every surface — grandfather clocks, pocket watches under glass, wall clocks frozen at wrong times. One clock in the very centre of the room is wired directly to the door lock. A brass plaque below it reads: 'Set me to the correct time and I will release you.' The workbench beside it holds your instructions.",
-    clue: `WORKBENCH CALCULATION SHEET:
-"Work through these steps in order.
- Do not skip ahead.
-
- START: Midnight exactly — 12:00 AM (or 00:00).
-
- STEP 1 — Add 3 days and 7 hours to your start time.
-           (Work out the total hours, then find the clock time.)
-
- STEP 2 — Subtract 29 hours from the result of Step 1.
-
- STEP 3 — Add 1 hour and 45 minutes.
-
- STEP 4 — The clock in this room runs 20 minutes FAST.
-           Correct for this error (subtract 20 minutes
-           from your Step 3 result to find real time).
-
- STEP 5 — Convert to 12-hour clock format.
-           Enter the result as HHMM (no colon, no AM/PM).
-           If the result is before 10, pad with a zero: e.g. 0730."`,
-    question: "What time do you set the clock to? Enter as 4 digits (HHMM, 12-hour, no AM/PM, zero-padded).",
-    type: "input",
-    answer: "0525",
-    altAnswers: ["525"],
-    realHint: "Start: 00:00. Step1: 3 days = 72h + 7h = 79h total → 79÷24=3r7 → time is 07:00 (3 full days later, same as +7h past midnight). Step2: 07:00 − 29h → go back: 07:00 minus 29h = need to borrow days: 7−29=−22, so wrap: 24−22=02:00 the previous... easier: 07:00 as total hours from start = 7, minus 29 = −22 → add 24 → 2:00 AM. Step3: 02:00 + 1h45m = 03:45. Step4: 03:45 − 20min = 03:25. Step5: 03:25 in 12-hour = 3:25 → enter 0325.",
-    success: "The hands sweep to the set position. A deep resonant chime fills the workshop. Every clock in the room stops simultaneously. The door unlocks.",
-    fail: "The clock rejects the setting. Go through each step with fresh eyes — one arithmetic slip cascades through all the steps that follow."
-  },
-  {
-    title: "The Final Vault",
-    atmo: "absolute silence · stone · the distant smell of open air",
-    narrative: "A bare stone room. One vault door. One keypad. An inscription carved deep into the stone above it. No second chances — the system locks permanently after one wrong entry. You have everything you need. You found it all yourself.",
-    clue: `INSCRIPTION (carved above the keypad):
-"Eight chambers. Eight answers.
- Now give them back in the order they were earned.
-
- THE VAULT CODE is assembled as follows:
-
-   DIGITS 1–2  :  The molecular weight of water, from
-                  the Alchemist's Laboratory.
-
-   DIGITS 3–4  :  The rotor sum from the Cipher Engine Room.
-                  (The number you entered there.)
-
-   DIGITS 5–6  :  From the Keeper's Study combination —
-                  take only the FIRST and LAST digit of
-                  the 4-digit code you entered.
-
-   DIGITS 7–8  :  The number of full ISS orbits per day
-                  from the Observatory (Switch 1),
-                  followed by the number of eclipse types
-                  (Switch 3).
-
- Eight digits. One entry. No hints beyond what you already know."`,
-    question: "Enter the 8-digit vault code.",
-    type: "input",
-    answer: "18149914",
-    altAnswers: [],
-    realHint: "Digits 1-2: H₂O molecular weight = 18. Digits 3-4: Cipher sum = 14. Digits 5-6: Study code first and last digit — the study code was 9859, so first digit=9, last digit=9 → 99. Digits 7-8: ISS orbits=15 (two digits)... wait clue says digits 7-8, so Switch1=15 is two digits already. Eclipse types=4. So 7-8 would be 1,5 and then where does 4 go? Re-read: digits 7-8 = Switch1 number followed by Switch3 number. Switch1=15 (two digits), Switch3=4 (one digit) — that's 3 more digits. Hmm — piece it together: 18 + 14 + 99 + 15 + 4 = 8 digits total: 18149915 4... recalculate carefully from your own answers.",
-    success: "Eight tones. One for each chamber. The vault door shudders as ancient bolts retract one by one. Cold, clean air rushes through from the other side. You step out into the light. You're free.",
-    fail: "The keypad locks. Breathe. Go back through your answers room by room. The code is entirely built from numbers you already found — you just need to assemble them correctly."
-  }
-];
-
-let cur = 0, lives = 3, timerSec = 3600, timerInt = null, answered = false, startTime = Date.now();
-
-function renderHearts() {
-  const el = document.getElementById('hearts');
-  el.innerHTML = '';
-  for (let i = 0; i < 3; i++) {
-    const d = document.createElement('div');
-    d.className = 'heart' + (i >= lives ? ' lost' : '');
-    el.appendChild(d);
-  }
-}
-
-function renderProgress() {
-  const el = document.getElementById('progress-strip');
-  el.innerHTML = '';
-  rooms.forEach((_, i) => {
-    const p = document.createElement('div');
-    p.className = 'pip' + (i < cur ? ' done' : i === cur ? ' active' : '');
-    el.appendChild(p);
-  });
-}
-
-function startTimer() {
-  clearInterval(timerInt);
-  updateTimerDisplay();
-  timerInt = setInterval(() => {
-    timerSec--;
-    updateTimerDisplay();
-    if (timerSec <= 0) { clearInterval(timerInt); showEnd(false, 'time'); }
-  }, 1000);
-}
-
-function updateTimerDisplay() {
-  const el = document.getElementById('timer');
-  const m = Math.floor(timerSec / 60);
-  const s = timerSec % 60;
-  el.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-  el.className = 'timer' + (timerSec < 300 ? ' urgent' : '');
-}
-
-function renderRoom() {
-  const r = rooms[cur];
-  answered = false;
-  document.getElementById('chamber-label').textContent = `Chamber ${cur + 1} of ${rooms.length}`;
-  document.getElementById('chamber-name').textContent = r.title;
-  renderHearts();
-  renderProgress();
-
-  document.getElementById('scene').innerHTML = `
-    <div class="atmo">${r.atmo}</div>
-    <div class="narrative">${r.narrative}</div>
-    <div class="clue-box"><span class="clue-label">EVIDENCE / PUZZLE</span>${r.clue}</div>
-  `;
-
-  let ph = `<p class="puzzle-q">${r.question}</p>`;
-
-  if (r.type === 'choice') {
-    ph += `<div class="choices" id="choices-wrap">`;
-    r.choices.forEach((c, i) => {
-      ph += `<button class="choice" onclick="pick(${i})" id="ch${i}">
-        <span class="choice-label">${c.label}</span>
-        <span class="choice-sub">${c.sub}</span>
-      </button>`;
+  bindLock(answer) {
+    document.querySelectorAll(".dial").forEach(d => {
+      d.onclick = () => {
+        let n = parseInt(d.innerText);
+        n = (n + 1) % 10;
+        d.innerText = n;
+      };
     });
-    ph += `</div>`;
-  } else {
-    ph += `<div class="input-row">
-      <input class="code-input" type="text" id="code-in" placeholder="Enter code..."
-        onkeydown="if(event.key==='Enter')checkInput()">
-      <button class="confirm-btn" onclick="checkInput()">CONFIRM</button>
-    </div>`;
+  },
+
+  check() {
+    const input = [...document.querySelectorAll(".dial")]
+      .map(d => d.innerText)
+      .join("");
+
+    const r = this.rooms[this.room];
+
+    if (input === r.answer) {
+      this.room++;
+      if (this.room >= this.rooms.length) {
+        alert("YOU ESCAPED!");
+        location.reload();
+      } else {
+        this.render();
+      }
+    } else {
+      this.lives--;
+      if (this.lives <= 0) {
+        alert("GAME OVER");
+        location.reload();
+      } else {
+        alert("Wrong!");
+        this.render();
+      }
+    }
   }
+};
 
-  ph += `
-    <div class="feedback" id="fb"></div>
-    <div class="hint-row">
-      <button class="hint-btn" onclick="toggleHint()">[ request hint — think first ]</button>
-      <div class="hint-text" id="hint-box">${r.realHint}</div>
-    </div>
-    <div class="bottom-row">
-      <button class="proceed-btn" id="proc-btn" onclick="nextRoom()">
-        ${cur === rooms.length - 1 ? '[ open the vault ]' : '[ proceed to next chamber ]'}
-      </button>
-    </div>
-  `;
-
-  document.getElementById('puzzle-area').innerHTML = ph;
-  window.scrollTo(0, 0);
-}
-
-function toggleHint() {
-  const h = document.getElementById('hint-box');
-  h.style.display = h.style.display === 'block' ? 'none' : 'block';
-}
-
-function pick(i) {
-  if (answered) return;
-  answered = true;
-  const r = rooms[cur];
-  document.querySelectorAll('.choice').forEach(c => c.disabled = true);
-  const fb = document.getElementById('fb');
-  const proc = document.getElementById('proc-btn');
-  if (i === r.answer) {
-    document.getElementById('ch' + i).classList.add('correct');
-    fb.className = 'feedback good'; fb.textContent = r.success;
-    proc.style.display = 'inline-block';
-  } else {
-    document.getElementById('ch' + i).classList.add('wrong');
-    document.getElementById('ch' + r.answer).classList.add('correct');
-    lives--; renderHearts();
-    fb.className = 'feedback bad'; fb.textContent = r.fail;
-    if (lives <= 0) setTimeout(() => showEnd(false, 'lives'), 1600);
-    else proc.style.display = 'inline-block';
-  }
-}
-
-function checkInput() {
-  if (answered) return;
-  const inp = document.getElementById('code-in');
-  const raw = (inp.value || '').trim();
-  const norm = raw.replace(/[\s\-:]/g, '').toUpperCase();
-  const r = rooms[cur];
-  const valid = [r.answer, ...(r.altAnswers || [])].map(x => x.replace(/[\s\-:]/g, '').toUpperCase());
-  const fb = document.getElementById('fb');
-  const proc = document.getElementById('proc-btn');
-  if (valid.includes(norm)) {
-    answered = true;
-    inp.disabled = true;
-    inp.classList.add('correct');
-    fb.className = 'feedback good'; fb.textContent = r.success;
-    proc.style.display = 'inline-block';
-  } else {
-    lives--; renderHearts();
-    inp.classList.add('wrong-flash');
-    setTimeout(() => inp.classList.remove('wrong-flash'), 600);
-    fb.className = 'feedback bad'; fb.textContent = r.fail;
-    if (lives <= 0) setTimeout(() => showEnd(false, 'lives'), 1600);
-    inp.select();
-  }
-}
-
-function nextRoom() {
-  cur++;
-  if (cur >= rooms.length) showEnd(true);
-  else {
-    document.getElementById('hud').style.display = 'flex';
-    document.getElementById('frame').style.display = 'block';
-    renderRoom();
-  }
-}
-
-function showEnd(won, reason) {
-  clearInterval(timerInt);
-  document.getElementById('hud').style.display = 'none';
-  document.getElementById('frame').style.display = 'none';
-  document.getElementById('progress-strip').innerHTML = '';
-  const elapsed = Math.floor((Date.now() - startTime) / 1000);
-  const mins = Math.floor(elapsed / 60);
-  const secs = elapsed % 60;
-  const es = document.getElementById('end-screen');
-  es.className = 'end-screen show';
-  if (won) {
-    es.innerHTML = `<span class="end-glyph">🔓</span>
-      <div class="end-title">You escaped.</div>
-      <div class="end-body">Every cipher broken. Every calculation verified. Every red herring discarded for what it was.<br>Eight chambers. One unbroken chain of logic. You made it out.</div>
-      <div class="end-meta">Time: ${mins}m ${secs}s &nbsp;|&nbsp; Lives remaining: ${lives} of 3</div>
-      <button class="replay-btn" onclick="restart()">[ play again ]</button>`;
-  } else {
-    const msg = reason === 'time'
-      ? 'The hour expired. The vault sealed itself permanently. The rooms will reset — but will you remember what you learned?'
-      : 'Three wrong answers. The system has locked you out. Every room has one correct logical path — find it before committing.';
-    es.innerHTML = `<span class="end-glyph">💀</span>
-      <div class="end-title">You didn't make it out.</div>
-      <div class="end-body">${msg}</div>
-      <div class="end-meta">Reached chamber ${cur + 1} of ${rooms.length} &nbsp;|&nbsp; Elapsed: ${mins}m ${secs}s</div>
-      <button class="replay-btn" onclick="restart()">[ try again ]</button>`;
-  }
-}
-
-function restart() {
-  cur = 0; lives = 3; timerSec = 3600; startTime = Date.now();
-  document.getElementById('hud').style.display = 'flex';
-  document.getElementById('frame').style.display = 'block';
-  document.getElementById('end-screen').className = 'end-screen';
-  renderRoom();
-}
-
-startTimer();
-renderRoom();
+Game.init();
 </script>
+
 </body>
 </html>
