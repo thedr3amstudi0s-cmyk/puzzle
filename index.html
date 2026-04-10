@@ -2,125 +2,675 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>PuzzleFlow</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Escape Room</title>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #0f172a;
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
 
-    .container {
-        background: #1e293b;
-        padding: 30px;
-        border-radius: 12px;
-        width: 400px;
-        text-align: center;
-        box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
+  :root {
+    --bg: #0d0d0d;
+    --surface: #141414;
+    --surface2: #1c1c1c;
+    --border: #2a2a2a;
+    --border2: #3a3a3a;
+    --text: #e8e3d8;
+    --text2: #8a8278;
+    --text3: #5a5550;
+    --accent: #c8a96e;
+    --accent2: #8b5c2a;
+    --green: #4a7c59;
+    --green-light: #6aaf7e;
+    --red: #7c3a3a;
+    --red-light: #c05a5a;
+    --mono: 'Share Tech Mono', monospace;
+    --serif: 'Crimson Pro', Georgia, serif;
+  }
 
-    h1 {
-        margin-bottom: 10px;
-    }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    input {
-        width: 80%;
-        padding: 10px;
-        margin-top: 15px;
-        border-radius: 6px;
-        border: none;
-    }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
 
-    button {
-        margin-top: 10px;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        background: #3b82f6;
-        color: white;
-        cursor: pointer;
-    }
+  #app { width: 100%; max-width: 680px; }
 
-    button:hover {
-        background: #2563eb;
-    }
+  /* Header bar */
+  .hud {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border: 0.5px solid var(--border2);
+    border-bottom: none;
+    background: var(--surface);
+    border-radius: 4px 4px 0 0;
+  }
+  .hud-left { display: flex; flex-direction: column; gap: 2px; }
+  .chamber-label { font-size: 10px; color: var(--text3); letter-spacing: 0.15em; text-transform: uppercase; }
+  .chamber-name { font-size: 13px; color: var(--accent); }
+  .hud-right { display: flex; align-items: center; gap: 16px; }
+  .timer {
+    font-size: 20px;
+    color: var(--text);
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s;
+  }
+  .timer.urgent { color: var(--red-light); }
+  .hearts { display: flex; gap: 5px; align-items: center; }
+  .heart {
+    width: 14px; height: 14px;
+    background: var(--red-light);
+    clip-path: polygon(50% 90%, 12% 40%, 3% 22%, 15% 8%, 30% 8%, 50% 28%, 70% 8%, 85% 8%, 97% 22%, 88% 40%);
+    transition: background 0.3s;
+  }
+  .heart.lost { background: var(--border2); }
 
-    .message {
-        margin-top: 15px;
-        font-weight: bold;
-    }
+  /* Main frame */
+  .frame {
+    border: 0.5px solid var(--border2);
+    background: var(--surface);
+    border-radius: 0 0 4px 4px;
+  }
 
-    .level {
-        font-size: 14px;
-        opacity: 0.7;
-    }
+  /* Scene */
+  .scene {
+    padding: 1.5rem;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--surface);
+  }
+  .atmo {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .atmo::before { content: '// '; }
+  .narrative {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-style: italic;
+    color: var(--text2);
+    line-height: 1.85;
+    margin-bottom: 1.25rem;
+    padding-left: 14px;
+    border-left: 1px solid var(--border2);
+  }
+  .clue-box {
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: 3px;
+    padding: 12px 16px;
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.75;
+  }
+  .clue-box::before {
+    content: 'OBSERVATION';
+    display: block;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+
+  /* Puzzle area */
+  .puzzle-area { padding: 1.5rem; }
+  .puzzle-q {
+    font-size: 14px;
+    color: var(--accent);
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+  .puzzle-q::before { content: '> '; color: var(--text3); }
+
+  /* Choice grid */
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.25rem; }
+  .choice {
+    border: 0.5px solid var(--border2);
+    background: var(--surface2);
+    padding: 12px 14px;
+    cursor: pointer;
+    text-align: left;
+    border-radius: 3px;
+    transition: border-color 0.15s, background 0.15s;
+    font-family: var(--mono);
+  }
+  .choice:hover { border-color: var(--accent2); background: #1f1a14; }
+  .choice-label { font-size: 13px; color: var(--text); display: block; margin-bottom: 4px; }
+  .choice-sub { font-size: 11px; color: var(--text3); display: block; line-height: 1.5; }
+  .choice.correct { border-color: var(--green-light); background: #0f1f14; }
+  .choice.correct .choice-label { color: var(--green-light); }
+  .choice.wrong { border-color: var(--red-light); background: #1f0f0f; }
+  .choice.wrong .choice-label { color: var(--red-light); }
+
+  /* Input puzzle */
+  .input-row { display: flex; gap: 8px; margin-bottom: 1.25rem; }
+  .code-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 0.5px solid var(--border2);
+    border-radius: 3px;
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .code-input:focus { border-color: var(--accent2); }
+  .code-input.correct { border-color: var(--green-light); color: var(--green-light); }
+  .code-input.wrong { border-color: var(--red-light); }
+  .confirm-btn {
+    padding: 10px 18px;
+    background: none;
+    border: 0.5px solid var(--border2);
+    border-radius: 3px;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .confirm-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Feedback */
+  .feedback {
+    font-family: var(--serif);
+    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: 3px;
+    margin-bottom: 1.25rem;
+    line-height: 1.7;
+    display: none;
+  }
+  .feedback.good { display: block; background: #0f1f14; border: 0.5px solid var(--green); color: #a8d4b4; }
+  .feedback.bad  { display: block; background: #1f0f0f; border: 0.5px solid var(--red); color: #d4a0a0; }
+
+  /* Hint */
+  .hint-row { margin-bottom: 1.25rem; }
+  .hint-btn {
+    font-size: 11px;
+    color: var(--text3);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--mono);
+    letter-spacing: 0.06em;
+    padding: 0;
+    transition: color 0.15s;
+  }
+  .hint-btn:hover { color: var(--text2); }
+  .hint-text {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--text3);
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-radius: 3px;
+    line-height: 1.7;
+    display: none;
+  }
+
+  /* Proceed */
+  .bottom-row {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 4px;
+  }
+  .proceed-btn {
+    padding: 10px 20px;
+    background: none;
+    border: 0.5px solid var(--accent2);
+    border-radius: 3px;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    display: none;
+    transition: background 0.15s;
+  }
+  .proceed-btn:hover { background: #1f1a14; }
+
+  /* Progress */
+  .progress-strip {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+  .pip {
+    width: 28px; height: 3px;
+    background: var(--border2);
+    border-radius: 2px;
+    transition: background 0.4s;
+  }
+  .pip.done { background: var(--green); }
+  .pip.active { background: var(--accent); }
+
+  /* End screen */
+  .end-screen {
+    display: none;
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--surface);
+    border: 0.5px solid var(--border2);
+    border-radius: 4px;
+  }
+  .end-screen.show { display: block; }
+  .end-glyph { font-size: 52px; display: block; margin-bottom: 1.5rem; }
+  .end-title { font-family: var(--serif); font-size: 26px; color: var(--accent); margin-bottom: 0.75rem; font-weight: 600; }
+  .end-body { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--text2); line-height: 1.85; margin-bottom: 1.5rem; max-width: 420px; margin-left: auto; margin-right: auto; }
+  .end-meta { font-size: 11px; color: var(--text3); margin-bottom: 2rem; letter-spacing: 0.1em; }
+  .replay-btn {
+    padding: 12px 28px;
+    background: none;
+    border: 0.5px solid var(--accent2);
+    border-radius: 3px;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: background 0.15s;
+  }
+  .replay-btn:hover { background: #1f1a14; }
+
+  /* Scanline effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  @media (max-width: 500px) {
+    .choices { grid-template-columns: 1fr; }
+    .hud { flex-wrap: wrap; gap: 8px; }
+  }
 </style>
 </head>
 <body>
+<div id="app">
+  <div id="hud" class="hud">
+    <div class="hud-left">
+      <span class="chamber-label" id="chamber-label">Chamber 1 of 8</span>
+      <span class="chamber-name" id="chamber-name"></span>
+    </div>
+    <div class="hud-right">
+      <span class="timer" id="timer">05:00</span>
+      <div class="hearts" id="hearts"></div>
+    </div>
+  </div>
 
-<div class="container">
-    <h1>PuzzleFlow</h1>
-    <div class="level">Level <span id="level">1</span></div>
+  <div class="frame" id="frame">
+    <div class="scene" id="scene"></div>
+    <div class="puzzle-area" id="puzzle-area"></div>
+  </div>
 
-    <p id="question"></p>
+  <div class="progress-strip" id="progress-strip"></div>
 
-    <input type="text" id="answer" placeholder="Enter answer..." />
-    <br>
-    <button onclick="checkAnswer()">Submit</button>
-
-    <div class="message" id="message"></div>
+  <div class="end-screen" id="end-screen"></div>
 </div>
 
 <script>
-const puzzles = [
-    {
-        question: "What has keys but can't open locks?",
-        answer: "keyboard"
-    },
-    {
-        question: "What runs but never walks?",
-        answer: "water"
-    },
-    {
-        question: "I speak without a mouth and hear without ears. What am I?",
-        answer: "echo"
-    }
+const rooms = [
+  {
+    title: "The Keeper's Study",
+    atmo: "dust · candlelight · old paper",
+    narrative: "You regain consciousness slumped against a heavy oak desk. Shelves of leather-bound books surround you on every side. The only door is sealed with a brass combination lock. A handwritten note on the desk reads: \"The year this study was built is the combination. Look for the cornerstone.\"",
+    clue: "You scan the room. On the mantelpiece you spot a framed portrait dated 1847. A crumbling newspaper on the chair reads 'January 12, 1923.' Above the door frame you find a carved stone — a cornerstone — with worn Roman numerals etched into it.",
+    question: "The cornerstone reads: MDCCXCIV. What year is the combination?",
+    type: "choice",
+    choices: [
+      { label: "1794", sub: "M=1000, D=500, CC=200, XC=90, IV=4" },
+      { label: "1847", sub: "From the portrait on the mantelpiece" },
+      { label: "1923", sub: "From the newspaper on the chair" },
+      { label: "1624", sub: "M=1000, DC=600, XXIV=24" }
+    ],
+    answer: 0,
+    hint: "Roman numerals: M=1000, D=500, C=100, XC=90, IV=4. Add them left to right, subtracting when a smaller value precedes a larger.",
+    success: "The lock clicks. 1-7-9-4. The door groans open, releasing a rush of cold, damp air from the corridor beyond.",
+    fail: "The lock doesn't budge. Somewhere deep in the walls, a mechanism tightens."
+  },
+  {
+    title: "The Warden's Office",
+    atmo: "flickering bulb · metal · silence",
+    narrative: "A sterile room. Filing cabinets line the walls — all sealed. A single desk lamp illuminates a pegboard of keys, most hooks conspicuously empty. A typed note under the lamp: \"The safe opens with the prime number between 40 and 50 that is also the atomic number of a noble gas.\"",
+    clue: "On the desk you find a torn periodic table. Noble gases are highlighted in yellow: He(2), Ne(10), Ar(18), Kr(36), Xe(54). On a notepad, someone has circled the prime numbers between 40 and 50: 41, 43, 47.",
+    question: "Which number satisfies both conditions — prime between 40–50 AND atomic number of a noble gas?",
+    type: "choice",
+    choices: [
+      { label: "41", sub: "Prime — but is element 41 a noble gas?" },
+      { label: "43", sub: "Prime — but is element 43 a noble gas?" },
+      { label: "47", sub: "Prime — but is element 47 a noble gas?" },
+      { label: "None — it's a trap", sub: "No noble gas has a prime atomic number in this range" }
+    ],
+    answer: 3,
+    hint: "Check the noble gases again. Kr=36, Xe=54. Neither is between 40 and 50. The clue is a red herring — what does that tell you about the safe?",
+    success: "Clever. No number satisfies both conditions — the clue is a deliberate trap. You search more carefully and find the safe already ajar. The warden panicked and fled.",
+    fail: "Wrong. A red light blinks on the desk. You hear a click — another lock engages somewhere."
+  },
+  {
+    title: "The Boiler Room",
+    atmo: "heat · steam · grinding metal",
+    narrative: "Pipes cover every wall, groaning with pressure. The room is sweltering. A cracked pressure gauge above the main valve is in the red. A laminated safety card is bolted to the wall: \"To vent safely, turn the valve whose label matches the missing number in the sequence below.\"",
+    clue: "Four valves are labeled with numbers: 2, 6, 18, ___. A smaller sign reads: \"Each number is multiplied by a constant. Find the constant, complete the sequence.\"",
+    question: "What number completes the sequence 2, 6, 18, ___? Enter it to vent the boiler.",
+    type: "input",
+    answer: "54",
+    altAnswers: [],
+    hint: "What do you multiply 2 by to get 6? That's your constant. Now apply it to 18.",
+    success: "You turn valve 54. A massive release of steam roars through the pipes. The pressure drops sharply. A hatch in the floor unlocks with a heavy clunk.",
+    fail: "Steam hisses dangerously from a loose joint. Wrong valve. The pressure climbs higher."
+  },
+  {
+    title: "The Signal Room",
+    atmo: "radio static · blinking lights · morse",
+    narrative: "Banks of old radio equipment surround a central operator's chair. A reel-to-reel player loops a recorded signal. On the frequency dial, scratched in metal: DOTS AND DASHES. A decoder card is pinned above the equipment: dot-dot-dot = S, dash-dash-dash = O.",
+    clue: "You listen. The broadcast repeats the same pattern over and over: [short-short-short] [long-long-long] [short-short-short]. Beside the radio are four frequency levers, each labeled. You must pull the correct one to respond to the signal.",
+    question: "What word is the signal broadcasting, and which lever do you pull to respond?",
+    type: "choice",
+    choices: [
+      { label: "Lever A — SOS", sub: "The universal distress signal" },
+      { label: "Lever B — SOO", sub: "A partial match to the pattern" },
+      { label: "Lever C — OSS", sub: "The sequence reversed" },
+      { label: "Lever D — SSS", sub: "Only the short-tone portions" }
+    ],
+    answer: 0,
+    hint: "Three short tones = S (dot dot dot). Three long tones = O (dash dash dash). The pattern is S-O-S.",
+    success: "You pull Lever A. The broadcast frequency shifts. A wall panel behind the equipment slides open, revealing a narrow stone corridor.",
+    fail: "The equipment sparks. Wrong lever. The broadcast gets louder, more urgent."
+  },
+  {
+    title: "The Cartographer's Room",
+    atmo: "maps · ink · compass needles",
+    narrative: "Every surface is covered in overlapping maps — continents, trade routes, ocean depths. A globe sits cracked in the corner. A locked chest in the center has a four-digit keypad. Pinned to the largest map, a handwritten clue.",
+    clue: "\"I am the only continent with land in all four hemispheres. My largest country by area has 11 time zones. Count my nations — those digits are your first two. My most populous city has a population in the tens of millions. Round it to the nearest million — those digits are your last two.\"",
+    question: "The continent is Africa (54 countries). Its most populous city is Lagos (~15M people). Enter the 4-digit code: [country count][city millions]",
+    type: "input",
+    answer: "5415",
+    altAnswers: ["5414", "5416"],
+    hint: "Africa has 54 countries. Lagos, Nigeria is Africa's most populous city at roughly 15 million. Combine: 54 and 15.",
+    success: "5-4-1-5. The chest springs open. Inside: a brass keycard, still warm to the touch.",
+    fail: "The keypad flashes red. Re-examine the clue more carefully."
+  },
+  {
+    title: "The Morgue",
+    atmo: "cold · fluorescent · stillness",
+    narrative: "You weren't expecting this. Steel drawers line the walls, all sealed. A clipboard hangs by the door with a patient chart — name fully redacted. You need the exit code. The chart reads: \"Body temp at discovery: 27°C. Normal body temp: 37°C. Rate of cooling: 1°C per hour post-mortem.\"",
+    clue: "On the wall, a frozen clock reads 3:00 AM. Your watch shows 1:00 PM. The exit keypad is labeled: HOURS SINCE DEATH. You study the temperature data carefully.",
+    question: "Using only the temperature data, how many hours ago did this person die? Enter the number.",
+    type: "input",
+    answer: "10",
+    altAnswers: [],
+    hint: "Ignore the frozen clock entirely — it's a distraction. The body lost (37 - 27) = 10°C at a rate of 1°C per hour.",
+    success: "You type 10. The exit mechanism disengages with a cold, clinical beep. One final chamber remains.",
+    fail: "Incorrect. The temperature in the room seems to drop another degree."
+  },
+  {
+    title: "The Mirror Hall",
+    atmo: "reflections · vertigo · silence",
+    narrative: "Infinite reflections stretch in every direction. Dozens of your own faces stare back at you from every angle. You can't tell what's real anymore. On the floor, painted in red: a riddle.",
+    clue: "\"I have cities but no houses. I have mountains but no trees. I have water but no fish. I have roads but no cars. One mirror in this room is slightly different — it has a keyhole. Speak the answer aloud.\"",
+    question: "What is the answer to the riddle on the floor?",
+    type: "choice",
+    choices: [
+      { label: "A map", sub: "Representations of things, not the things themselves" },
+      { label: "A dream", sub: "A place that feels real but holds nothing physical" },
+      { label: "A photograph", sub: "Captures the world but holds nothing alive" },
+      { label: "A mirror", sub: "Shows reflections of everything around it" }
+    ],
+    answer: 0,
+    hint: "Think about what has all those features as labels or drawings rather than reality. You might use it to navigate.",
+    success: "A map. The mirror with the keyhole swings open on its own. Beyond it: the final chamber, and the door out.",
+    fail: "Your reflection shakes its head slowly. The mirrors seem to multiply."
+  },
+  {
+    title: "The Final Room",
+    atmo: "silence · a single door · freedom",
+    narrative: "A stark, empty room. A single heavy metal door with a keypad. No furniture. No clues on the walls. Just the door, and a final inscription etched into the floor beneath your feet.",
+    clue: "\"You've solved every chamber. Now prove it. The final code is constructed from the answers you found along the way. Combine: the year from the Keeper's Study, the valve number from the Boiler Room, and the hours from the Morgue. No spaces. No separators.\"",
+    question: "Keeper's Study = 1794. Boiler Room = 54. Morgue = 10. What is the combined code?",
+    type: "input",
+    answer: "17945410",
+    altAnswers: ["1794 54 10", "1794-54-10"],
+    hint: "1794 (room 1) + 54 (room 3) + 10 (room 6) written together: 17945410",
+    success: "17945410. The lock disengages with a deep mechanical thud. The door swings open. Daylight floods in. You're out.",
+    fail: "So close. Revisit what you found in the Study, the Boiler Room, and the Morgue."
+  }
 ];
 
-let currentLevel = 0;
+let cur = 0, lives = 3, timerSec = 300, timerInt = null, answered = false, startTime = Date.now();
 
-function loadPuzzle() {
-    document.getElementById("question").innerText = puzzles[currentLevel].question;
-    document.getElementById("level").innerText = currentLevel + 1;
-    document.getElementById("answer").value = "";
-    document.getElementById("message").innerText = "";
+function renderHearts() {
+  const el = document.getElementById('hearts');
+  el.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const d = document.createElement('div');
+    d.className = 'heart' + (i >= lives ? ' lost' : '');
+    el.appendChild(d);
+  }
 }
 
-function checkAnswer() {
-    const userAnswer = document.getElementById("answer").value.toLowerCase().trim();
+function renderProgress() {
+  const el = document.getElementById('progress-strip');
+  el.innerHTML = '';
+  rooms.forEach((_, i) => {
+    const p = document.createElement('div');
+    p.className = 'pip' + (i < cur ? ' done' : i === cur ? ' active' : '');
+    el.appendChild(p);
+  });
+}
 
-    if (userAnswer === puzzles[currentLevel].answer) {
-        document.getElementById("message").innerText = "Correct!";
+function startTimer() {
+  clearInterval(timerInt);
+  timerSec = 300;
+  updateTimerDisplay();
+  timerInt = setInterval(() => {
+    timerSec--;
+    updateTimerDisplay();
+    if (timerSec <= 0) { clearInterval(timerInt); showEnd(false, 'time'); }
+  }, 1000);
+}
 
-        currentLevel++;
+function updateTimerDisplay() {
+  const el = document.getElementById('timer');
+  const m = Math.floor(timerSec / 60);
+  const s = timerSec % 60;
+  el.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  el.className = 'timer' + (timerSec < 60 ? ' urgent' : '');
+}
 
-        if (currentLevel < puzzles.length) {
-            setTimeout(loadPuzzle, 1000);
-        } else {
-            document.getElementById("question").innerText = "You completed all puzzles!";
-            document.getElementById("message").innerText = "Nice work.";
-        }
+function renderRoom() {
+  const r = rooms[cur];
+  answered = false;
+
+  document.getElementById('chamber-label').textContent = `Chamber ${cur + 1} of ${rooms.length}`;
+  document.getElementById('chamber-name').textContent = r.title;
+  renderHearts();
+  renderProgress();
+  startTimer();
+
+  document.getElementById('scene').innerHTML = `
+    <div class="atmo">${r.atmo}</div>
+    <div class="narrative">${r.narrative}</div>
+    <div class="clue-box">${r.clue}</div>
+  `;
+
+  let puzzleHTML = `<p class="puzzle-q">${r.question}</p>`;
+
+  if (r.type === 'choice') {
+    puzzleHTML += `<div class="choices" id="choices-wrap">`;
+    r.choices.forEach((c, i) => {
+      puzzleHTML += `<button class="choice" onclick="pick(${i})" id="ch${i}">
+        <span class="choice-label">${c.label}</span>
+        <span class="choice-sub">${c.sub}</span>
+      </button>`;
+    });
+    puzzleHTML += `</div>`;
+  } else {
+    puzzleHTML += `<div class="input-row">
+      <input class="code-input" type="text" id="code-in" placeholder="Enter code..." maxlength="20"
+        onkeydown="if(event.key==='Enter')checkInput()">
+      <button class="confirm-btn" onclick="checkInput()">CONFIRM</button>
+    </div>`;
+  }
+
+  puzzleHTML += `
+    <div class="feedback" id="fb"></div>
+    <div class="hint-row">
+      <button class="hint-btn" onclick="toggleHint()">[ need a hint? ]</button>
+      <div class="hint-text" id="hint-box">${r.hint}</div>
+    </div>
+    <div class="bottom-row">
+      <button class="proceed-btn" id="proc-btn" onclick="nextRoom()">
+        ${cur === rooms.length - 1 ? '[ escape ]' : '[ proceed to next chamber ]'}
+      </button>
+    </div>
+  `;
+
+  document.getElementById('puzzle-area').innerHTML = puzzleHTML;
+}
+
+function toggleHint() {
+  const h = document.getElementById('hint-box');
+  h.style.display = h.style.display === 'block' ? 'none' : 'block';
+}
+
+function pick(i) {
+  if (answered) return;
+  answered = true;
+  const r = rooms[cur];
+  document.querySelectorAll('.choice').forEach(c => c.disabled = true);
+  const fb = document.getElementById('fb');
+  const proc = document.getElementById('proc-btn');
+
+  if (i === r.answer) {
+    document.getElementById('ch' + i).classList.add('correct');
+    fb.className = 'feedback good';
+    fb.textContent = r.success;
+    proc.style.display = 'inline-block';
+    clearInterval(timerInt);
+  } else {
+    document.getElementById('ch' + i).classList.add('wrong');
+    document.getElementById('ch' + r.answer).classList.add('correct');
+    lives--;
+    renderHearts();
+    fb.className = 'feedback bad';
+    fb.textContent = r.fail;
+    if (lives <= 0) {
+      setTimeout(() => showEnd(false, 'lives'), 1600);
     } else {
-        document.getElementById("message").innerText = "Try again.";
+      proc.style.display = 'inline-block';
     }
+  }
 }
 
-loadPuzzle();
-</script>
+function checkInput() {
+  if (answered) return;
+  const inp = document.getElementById('code-in');
+  const raw = (inp.value || '').trim();
+  const norm = raw.replace(/[\s\-]/g, '').toUpperCase();
+  const r = rooms[cur];
+  const valid = [r.answer, ...(r.altAnswers || [])].map(x => x.replace(/[\s\-]/g, '').toUpperCase());
+  const fb = document.getElementById('fb');
+  const proc = document.getElementById('proc-btn');
 
+  if (valid.includes(norm)) {
+    answered = true;
+    inp.disabled = true;
+    inp.classList.add('correct');
+    fb.className = 'feedback good';
+    fb.textContent = r.success;
+    proc.style.display = 'inline-block';
+    clearInterval(timerInt);
+  } else {
+    lives--;
+    renderHearts();
+    inp.classList.add('wrong');
+    setTimeout(() => inp.classList.remove('wrong'), 600);
+    fb.className = 'feedback bad';
+    fb.textContent = r.fail;
+    if (lives <= 0) {
+      setTimeout(() => showEnd(false, 'lives'), 1600);
+    }
+    inp.select();
+  }
+}
+
+function nextRoom() {
+  cur++;
+  if (cur >= rooms.length) {
+    showEnd(true);
+  } else {
+    document.getElementById('hud').style.display = 'flex';
+    document.getElementById('frame').style.display = 'block';
+    renderRoom();
+  }
+}
+
+function showEnd(won, reason) {
+  clearInterval(timerInt);
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('frame').style.display = 'none';
+  document.getElementById('progress-strip').innerHTML = '';
+
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+
+  const es = document.getElementById('end-screen');
+  es.className = 'end-screen show';
+
+  if (won) {
+    es.innerHTML = `
+      <span class="end-glyph">🔓</span>
+      <div class="end-title">You escaped.</div>
+      <div class="end-body">Every lock picked. Every cipher cracked. Every red herring seen for what it was.<br>You made it out of all eight chambers.</div>
+      <div class="end-meta">Time: ${mins}m ${secs}s &nbsp;|&nbsp; Lives remaining: ${lives} of 3</div>
+      <button class="replay-btn" onclick="restart()">[ play again ]</button>
+    `;
+  } else {
+    const msg = reason === 'time'
+      ? 'The clock reached zero. The room sealed permanently around you.'
+      : 'You used your last life. The room shows no mercy to the careless.';
+    es.innerHTML = `
+      <span class="end-glyph">💀</span>
+      <div class="end-title">You didn't make it out.</div>
+      <div class="end-body">${msg}</div>
+      <div class="end-meta">Made it to chamber ${cur + 1} of ${rooms.length}</div>
+      <button class="replay-btn" onclick="restart()">[ try again ]</button>
+    `;
+  }
+}
+
+function restart() {
+  cur = 0; lives = 3; startTime = Date.now();
+  document.getElementById('hud').style.display = 'flex';
+  document.getElementById('frame').style.display = 'block';
+  document.getElementById('end-screen').className = 'end-screen';
+  renderRoom();
+}
+
+renderRoom();
+</script>
 </body>
 </html>
