@@ -1,58 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Escape Room Game</title>
-
+<meta charset="UTF-8">
+<title>Escape Room</title>
 <style>
 body {
   margin: 0;
-  font-family: Arial;
   background: #0b0b0b;
   color: white;
+  font-family: Arial;
   overflow: hidden;
 }
 
+#hud {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: #aaa;
+}
+
 #game {
-  width: 100vw;
   height: 100vh;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  transition: 0.5s;
 }
 
 .room {
   width: 70%;
-  max-width: 800px;
-  padding: 20px;
-  border: 1px solid #333;
   background: #141414;
-  box-shadow: 0 0 20px black;
-  animation: fadeIn 0.5s ease;
+  border: 1px solid #333;
+  padding: 20px;
+  box-shadow: 0 0 30px black;
+  animation: fade 0.4s ease;
 }
 
-@keyframes fadeIn {
+@keyframes fade {
   from { opacity: 0; transform: scale(0.98); }
   to { opacity: 1; transform: scale(1); }
 }
 
 .title {
-  font-size: 20px;
-  margin-bottom: 10px;
   color: #caa86a;
+  font-size: 20px;
 }
 
 .narrative {
-  font-size: 14px;
   color: #aaa;
-  margin-bottom: 20px;
-}
-
-.puzzle {
-  margin-top: 10px;
+  margin: 10px 0 20px;
 }
 
 .lock {
@@ -64,7 +59,7 @@ body {
   width: 60px;
   height: 60px;
   background: #222;
-  border: 1px solid #555;
+  border: 1px solid #444;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -76,48 +71,38 @@ button {
   margin-top: 10px;
   padding: 10px;
   background: #222;
-  color: white;
   border: 1px solid #444;
+  color: white;
   cursor: pointer;
-}
-
-button:hover {
-  background: #333;
-}
-
-#hud {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  color: #888;
 }
 </style>
 </head>
 
 <body>
 
-<div id="hud">Room: 1 | Lives: 3</div>
+<div id="hud"></div>
 <div id="game"></div>
 
 <script>
 const Game = {
+
   room: 0,
   lives: 3,
 
   rooms: [
     {
-      title: "The Locked Door",
-      text: "A 3-digit lock blocks your exit.",
+      title: "The First Door",
+      text: "A simple 3-digit lock blocks the exit.",
       answer: "123"
     },
     {
-      title: "Second Chamber",
+      title: "The Second Chamber",
       text: "Another lock appears.",
       answer: "456"
     },
     {
-      title: "Final Door",
-      text: "This is the last one.",
+      title: "Final Chamber",
+      text: "Last door. Focus.",
       answer: "789"
     }
   ],
@@ -130,41 +115,31 @@ const Game = {
     const r = this.rooms[this.room];
 
     document.getElementById("hud").innerText =
-      `Room: ${this.room + 1} | Lives: ${this.lives}`;
+      `Room: ${this.room + 1}/${this.rooms.length} | Lives: ${this.lives}`;
 
-    const game = document.getElementById("game");
-
-    game.innerHTML = `
+    document.getElementById("game").innerHTML = `
       <div class="room">
         <div class="title">${r.title}</div>
         <div class="narrative">${r.text}</div>
 
-        <div class="puzzle">
-          ${this.lockUI(r.answer)}
+        <div class="lock">
+          <div class="dial">0</div>
+          <div class="dial">0</div>
+          <div class="dial">0</div>
         </div>
+
+        <button onclick="Game.check()">ENTER</button>
       </div>
     `;
 
-    this.bindLock(r.answer);
+    this.bind();
   },
 
-  lockUI(answer) {
-    return `
-      <div class="lock">
-        <div class="dial" data-i="0">0</div>
-        <div class="dial" data-i="1">0</div>
-        <div class="dial" data-i="2">0</div>
-      </div>
-      <button onclick="Game.check()">ENTER</button>
-    `;
-  },
-
-  bindLock(answer) {
+  bind() {
     document.querySelectorAll(".dial").forEach(d => {
       d.onclick = () => {
-        let n = parseInt(d.innerText);
-        n = (n + 1) % 10;
-        d.innerText = n;
+        let v = parseInt(d.innerText);
+        d.innerText = (v + 1) % 10;
       };
     });
   },
@@ -178,14 +153,17 @@ const Game = {
 
     if (input === r.answer) {
       this.room++;
+
       if (this.room >= this.rooms.length) {
         alert("YOU ESCAPED!");
         location.reload();
       } else {
         this.render();
       }
+
     } else {
       this.lives--;
+
       if (this.lives <= 0) {
         alert("GAME OVER");
         location.reload();
