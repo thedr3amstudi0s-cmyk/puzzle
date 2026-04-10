@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PuzzleFlow</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #0f172a;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    .container {
+        background: #1e293b;
+        padding: 30px;
+        border-radius: 12px;
+        width: 400px;
+        text-align: center;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    h1 {
+        margin-bottom: 10px;
+    }
+
+    input {
+        width: 80%;
+        padding: 10px;
+        margin-top: 15px;
+        border-radius: 6px;
+        border: none;
+    }
+
+    button {
+        margin-top: 10px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        background: #3b82f6;
+        color: white;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #2563eb;
+    }
+
+    .message {
+        margin-top: 15px;
+        font-weight: bold;
+    }
+
+    .level {
+        font-size: 14px;
+        opacity: 0.7;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>PuzzleFlow</h1>
+    <div class="level">Level <span id="level">1</span></div>
+
+    <p id="question"></p>
+
+    <input type="text" id="answer" placeholder="Enter answer..." />
+    <br>
+    <button onclick="checkAnswer()">Submit</button>
+
+    <div class="message" id="message"></div>
+</div>
+
+<script>
+const puzzles = [
+    {
+        question: "What has keys but can't open locks?",
+        answer: "keyboard"
+    },
+    {
+        question: "What runs but never walks?",
+        answer: "water"
+    },
+    {
+        question: "I speak without a mouth and hear without ears. What am I?",
+        answer: "echo"
+    }
+];
+
+let currentLevel = 0;
+
+function loadPuzzle() {
+    document.getElementById("question").innerText = puzzles[currentLevel].question;
+    document.getElementById("level").innerText = currentLevel + 1;
+    document.getElementById("answer").value = "";
+    document.getElementById("message").innerText = "";
+}
+
+function checkAnswer() {
+    const userAnswer = document.getElementById("answer").value.toLowerCase().trim();
+
+    if (userAnswer === puzzles[currentLevel].answer) {
+        document.getElementById("message").innerText = "Correct!";
+
+        currentLevel++;
+
+        if (currentLevel < puzzles.length) {
+            setTimeout(loadPuzzle, 1000);
+        } else {
+            document.getElementById("question").innerText = "You completed all puzzles!";
+            document.getElementById("message").innerText = "Nice work.";
+        }
+    } else {
+        document.getElementById("message").innerText = "Try again.";
+    }
+}
+
+loadPuzzle();
+</script>
+
+</body>
+</html>
