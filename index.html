@@ -2,181 +2,1522 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Escape Room</title>
 <style>
-body {
-  margin: 0;
-  background: #0b0b0b;
-  color: white;
-  font-family: Arial;
-  overflow: hidden;
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --bg: #0a0806;
+  --surface: #12100d;
+  --panel: #1a1612;
+  --border: #3a2e22;
+  --border2: #5a4a34;
+  --gold: #c8a050;
+  --gold2: #8a6030;
+  --amber: #e8b060;
+  --text: #e0d4c0;
+  --text2: #a09070;
+  --text3: #605040;
+  --green: #4a8a5a;
+  --green-l: #80c090;
+  --red: #8a3a3a;
+  --red-l: #c06060;
+  --shadow: rgba(0,0,0,0.7);
+  --glow: rgba(200,160,80,0.15);
 }
 
-#hud {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  color: #aaa;
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'Crimson Pro',serif;min-height:100vh;overflow-x:hidden;cursor:default}
 
-#game {
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+/* ── HUD ── */
+#hud{position:fixed;top:0;left:0;right:0;z-index:100;background:linear-gradient(to bottom,rgba(10,8,6,0.98),rgba(10,8,6,0.8));border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between}
+.hud-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:0.2em;color:var(--gold);text-transform:uppercase}
+.hud-mid{display:flex;flex-direction:column;align-items:center;gap:2px}
+.room-name{font-family:'Cinzel',serif;font-size:13px;color:var(--amber);letter-spacing:0.1em}
+.progress-dots{display:flex;gap:5px}
+.pdot{width:6px;height:6px;border-radius:50%;background:var(--border2);transition:background 0.4s}
+.pdot.done{background:var(--green)}
+.pdot.active{background:var(--gold)}
+.hud-right{display:flex;align-items:center;gap:16px}
+.timer{font-family:'Share Tech Mono',monospace;font-size:22px;color:var(--text);letter-spacing:0.05em}
+.timer.warn{color:#e8a040}
+.timer.danger{color:var(--red-l)}
+.lives{display:flex;gap:4px}
+.life{font-size:16px;transition:opacity 0.3s}
+.life.lost{opacity:0.2;filter:grayscale(1)}
 
-.room {
-  width: 70%;
-  background: #141414;
-  border: 1px solid #333;
-  padding: 20px;
-  box-shadow: 0 0 30px black;
-  animation: fade 0.4s ease;
-}
+/* ── MAIN ── */
+#main{padding-top:60px;min-height:100vh;display:flex;flex-direction:column}
 
-@keyframes fade {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
-}
+/* ── ROOM VIEW ── */
+#room-view{position:relative;width:100%;max-width:900px;margin:0 auto;padding:20px}
+.room-scene{position:relative;border:1px solid var(--border2);border-radius:4px;overflow:hidden;background:#0d0a07;box-shadow:0 0 60px rgba(200,160,80,0.08)}
+.room-scene svg{display:block;width:100%;height:auto}
 
-.title {
-  color: #caa86a;
-  font-size: 20px;
-}
+/* ── HOTSPOTS ── */
+.hotspot{cursor:pointer;transition:opacity 0.2s}
+.hotspot:hover .hs-pulse{animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:0.5}50%{opacity:1}}
+.hs-label{pointer-events:none;opacity:0;transition:opacity 0.2s}
+.hotspot:hover .hs-label{opacity:1}
 
-.narrative {
-  color: #aaa;
-  margin: 10px 0 20px;
-}
+/* ── JOURNAL / CLUE PANEL ── */
+#journal{max-width:900px;margin:0 auto;padding:0 20px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.journal-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:16px}
+.journal-card h3{font-family:'Cinzel',serif;font-size:11px;letter-spacing:0.15em;color:var(--gold);margin-bottom:10px;text-transform:uppercase}
+.journal-text{font-size:14px;color:var(--text2);line-height:1.8;font-style:italic}
+.journal-clue{font-size:13px;color:var(--text);line-height:1.9;white-space:pre-wrap;font-family:'Share Tech Mono',monospace}
 
-.lock {
-  display: flex;
-  gap: 10px;
-}
+/* ── PUZZLE MODAL ── */
+#puzzle-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(5,4,3,0.92);align-items:center;justify-content:center}
+#puzzle-overlay.open{display:flex}
+#puzzle-box{background:var(--panel);border:1px solid var(--border2);border-radius:6px;width:min(680px,95vw);max-height:90vh;overflow-y:auto;position:relative}
+.puzzle-header{padding:20px 20px 0;border-bottom:1px solid var(--border);padding-bottom:14px;display:flex;align-items:flex-start;justify-content:space-between}
+.puzzle-title{font-family:'Cinzel',serif;font-size:16px;color:var(--amber);letter-spacing:0.08em}
+.puzzle-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
+.puzzle-close:hover{color:var(--text)}
+.puzzle-body{padding:20px}
+.puzzle-desc{font-size:15px;color:var(--text2);line-height:1.8;margin-bottom:16px;font-style:italic}
+.puzzle-task{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:12px 14px;margin-bottom:16px;white-space:pre-wrap;line-height:1.9}
 
-.dial {
-  width: 60px;
-  height: 60px;
-  background: #222;
-  border: 1px solid #444;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  font-size: 22px;
-}
+/* ── DRAG & DROP ── */
+.drag-area{min-height:60px;border:1px dashed var(--border2);border-radius:4px;padding:10px;display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.drag-area.over{border-color:var(--gold);background:var(--glow)}
+.drag-item{padding:8px 14px;background:var(--surface);border:1px solid var(--border2);border-radius:3px;cursor:grab;font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text);transition:border-color 0.15s,transform 0.1s;user-select:none}
+.drag-item:hover{border-color:var(--gold2)}
+.drag-item.dragging{opacity:0.5;transform:scale(0.95);cursor:grabbing}
+.drag-slot{min-width:80px;min-height:40px;border:1px dashed var(--border2);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);font-family:'Share Tech Mono',monospace;padding:4px;background:var(--surface)}
+.drag-slot.filled{border-color:var(--border2);background:var(--panel)}
+.drag-slot.correct-slot{border-color:var(--green)!important;background:#0a1a0f!important}
+.drag-slot.wrong-slot{border-color:var(--red)!important;background:#1a0a0a!important}
+.slots-row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.slot-label{font-size:11px;color:var(--text3);margin-bottom:4px;font-family:'Share Tech Mono',monospace}
 
-button {
-  margin-top: 10px;
-  padding: 10px;
-  background: #222;
-  border: 1px solid #444;
-  color: white;
-  cursor: pointer;
-}
+/* ── DIALS / COMBINATION ── */
+.dials-row{display:flex;gap:12px;justify-content:center;margin:16px 0}
+.dial-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.dial-lbl{font-size:10px;color:var(--text3);font-family:'Share Tech Mono',monospace;letter-spacing:0.1em}
+.dial{width:56px;height:56px;border-radius:50%;border:2px solid var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:22px;color:var(--gold);cursor:pointer;transition:border-color 0.2s,background 0.2s;position:relative;user-select:none}
+.dial:hover{border-color:var(--gold2);background:#1f1810}
+.dial-arrows{display:flex;flex-direction:column;gap:2px}
+.dial-arrow{background:none;border:none;color:var(--text3);font-size:14px;cursor:pointer;line-height:1;padding:0 2px}
+.dial-arrow:hover{color:var(--gold)}
+
+/* ── CIPHER WHEEL ── */
+#cipher-canvas{border-radius:50%;cursor:grab;display:block;margin:0 auto}
+
+/* ── WIRE PUZZLE ── */
+#wire-canvas{display:block;cursor:crosshair;border:1px solid var(--border);border-radius:4px;background:#0d0a07;width:100%;max-width:500px;margin:0 auto}
+
+/* ── SLIDER LOCK ── */
+.sliders-grid{display:grid;gap:12px;margin:12px 0}
+.slider-row{display:flex;align-items:center;gap:10px}
+.slider-row label{font-size:11px;color:var(--text3);font-family:'Share Tech Mono',monospace;width:60px}
+input[type=range]{flex:1;accent-color:var(--gold)}
+.slider-val{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--amber);width:30px;text-align:right}
+
+/* ── INPUT / BUTTONS ── */
+.puzz-input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:3px;padding:10px 14px;font-family:'Share Tech Mono',monospace;font-size:15px;color:var(--text);outline:none;transition:border-color 0.2s;letter-spacing:0.1em}
+.puzz-input:focus{border-color:var(--gold2)}
+.puzz-input.correct{border-color:var(--green-l);color:var(--green-l)}
+.puzz-input.wrong{border-color:var(--red-l)}
+.btn-row{display:flex;gap:10px;margin-top:12px}
+.btn{padding:10px 20px;border:1px solid var(--border2);border-radius:3px;background:none;color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:12px;cursor:pointer;letter-spacing:0.08em;transition:all 0.15s}
+.btn:hover{border-color:var(--gold2);color:var(--gold)}
+.btn.primary{border-color:var(--gold2);color:var(--gold)}
+.btn.primary:hover{background:rgba(200,160,80,0.1)}
+
+/* ── FEEDBACK ── */
+.feedback{font-size:14px;padding:10px 14px;border-radius:3px;margin-top:12px;line-height:1.7;display:none;font-style:italic}
+.feedback.good{display:block;background:#0a180f;border:1px solid var(--green);color:var(--green-l)}
+.feedback.bad{display:block;background:#180a0a;border:1px solid var(--red);color:var(--red-l)}
+
+/* ── HINT ── */
+.hint-toggle{font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:'Share Tech Mono',monospace;margin-top:10px;padding:0;letter-spacing:0.06em}
+.hint-toggle:hover{color:var(--text2)}
+.hint-box{display:none;font-size:13px;color:var(--text3);margin-top:8px;padding:8px 12px;background:var(--surface);border-radius:3px;line-height:1.7;font-style:italic}
+
+/* ── END SCREEN ── */
+#end-screen{display:none;position:fixed;inset:0;z-index:300;background:rgba(5,4,3,0.97);align-items:center;justify-content:center;text-align:center;flex-direction:column}
+#end-screen.show{display:flex}
+.end-icon{font-size:72px;margin-bottom:1.5rem}
+.end-title{font-family:'Cinzel',serif;font-size:32px;color:var(--gold);margin-bottom:1rem;letter-spacing:0.1em}
+.end-body{font-size:17px;color:var(--text2);line-height:1.9;max-width:480px;margin-bottom:1.5rem;font-style:italic}
+.end-meta{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:2rem;letter-spacing:0.1em}
+
+/* ── ITEM INSPECT ── */
+#inspect-overlay{display:none;position:fixed;inset:0;z-index:250;background:rgba(5,4,3,0.95);align-items:center;justify-content:center}
+#inspect-overlay.open{display:flex}
+#inspect-box{background:var(--panel);border:1px solid var(--border2);border-radius:6px;padding:24px;max-width:500px;width:90vw;position:relative}
+.inspect-title{font-family:'Cinzel',serif;font-size:15px;color:var(--amber);margin-bottom:14px}
+.inspect-img{width:100%;border-radius:3px;border:1px solid var(--border);margin-bottom:14px;background:var(--surface)}
+.inspect-text{font-size:15px;color:var(--text2);line-height:1.8;font-style:italic}
+.inspect-close{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer}
+.inspect-close:hover{color:var(--text)}
+
+/* ── NOTIFY ── */
+#notify{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:400;pointer-events:none}
+.notif{background:var(--panel);border:1px solid var(--border2);border-radius:4px;padding:10px 20px;font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text);opacity:0;transform:translateY(10px);transition:all 0.3s;margin-top:6px;text-align:center}
+.notif.show{opacity:1;transform:translateY(0)}
+.notif.success{border-color:var(--green);color:var(--green-l)}
+.notif.error{border-color:var(--red);color:var(--red-l)}
+
+/* ── INVENTORY BAR ── */
+#inventory{position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(10,8,6,0.95);border-top:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:12px}
+.inv-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:0.1em;white-space:nowrap}
+.inv-items{display:flex;gap:8px;flex-wrap:wrap}
+.inv-item{padding:5px 12px;background:var(--surface);border:1px solid var(--border2);border-radius:3px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Share Tech Mono',monospace;transition:border-color 0.15s}
+.inv-item:hover{border-color:var(--gold2);color:var(--gold)}
 </style>
 </head>
-
 <body>
 
-<div id="hud"></div>
-<div id="game"></div>
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-title">&#9670; Escape Room</div>
+  <div class="hud-mid">
+    <div class="room-name" id="room-name">The Locked Study</div>
+    <div class="progress-dots" id="prog-dots"></div>
+  </div>
+  <div class="hud-right">
+    <div class="timer" id="timer">60:00</div>
+    <div class="lives" id="lives"></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="room-view">
+    <div class="room-scene" id="room-scene"></div>
+  </div>
+  <div id="journal">
+    <div class="journal-card">
+      <h3>&#128196; Notes</h3>
+      <div class="journal-text" id="journal-text">Examine the room. Click on objects that glow or seem interactive.</div>
+    </div>
+    <div class="journal-card">
+      <h3>&#128270; Observations</h3>
+      <div class="journal-clue" id="journal-clue">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- INVENTORY -->
+<div id="inventory">
+  <div class="inv-label">INVENTORY</div>
+  <div class="inv-items" id="inv-items"><span style="font-size:12px;color:var(--text3);font-family:'Share Tech Mono',monospace">empty</span></div>
+</div>
+
+<!-- PUZZLE OVERLAY -->
+<div id="puzzle-overlay">
+  <div id="puzzle-box">
+    <div class="puzzle-header">
+      <div class="puzzle-title" id="puzz-title">Puzzle</div>
+      <button class="puzzle-close" onclick="closePuzzle()">✕</button>
+    </div>
+    <div class="puzzle-body" id="puzz-body"></div>
+  </div>
+</div>
+
+<!-- INSPECT OVERLAY -->
+<div id="inspect-overlay">
+  <div id="inspect-box">
+    <button class="inspect-close" onclick="closeInspect()">✕</button>
+    <div class="inspect-title" id="insp-title"></div>
+    <svg class="inspect-img" id="insp-svg" viewBox="0 0 400 200"></svg>
+    <div class="inspect-text" id="insp-text"></div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn" onclick="closeInspect()">Put it down</button>
+      <button class="btn primary" id="insp-use-btn" style="display:none">Use this item</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFY -->
+<div id="notify"></div>
+
+<!-- END SCREEN -->
+<div id="end-screen">
+  <div class="end-icon" id="end-icon">🔓</div>
+  <div class="end-title" id="end-title">You Escaped</div>
+  <div class="end-body" id="end-body"></div>
+  <div class="end-meta" id="end-meta"></div>
+  <button class="btn primary" onclick="restart()" style="margin-top:1rem">[ Play Again ]</button>
+</div>
 
 <script>
-const Game = {
-
+// ═══════════════════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════════════════
+let state = {
   room: 0,
   lives: 3,
+  timerSec: 3600,
+  timerInt: null,
+  startTime: Date.now(),
+  inventory: [],
+  solved: {},
+  roomsSolved: 0
+};
 
-  rooms: [
-    {
-      title: "The First Door",
-      text: "A simple 3-digit lock blocks the exit.",
-      answer: "123"
-    },
-    {
-      title: "The Second Chamber",
-      text: "Another lock appears.",
-      answer: "456"
-    },
-    {
-      title: "Final Chamber",
-      text: "Last door. Focus.",
-      answer: "789"
-    }
-  ],
+// ═══════════════════════════════════════════════════════
+// ROOMS DEFINITION
+// ═══════════════════════════════════════════════════════
+const ROOMS = [
 
-  init() {
-    this.render();
-  },
-
-  render() {
-    const r = this.rooms[this.room];
-
-    document.getElementById("hud").innerText =
-      `Room: ${this.room + 1}/${this.rooms.length} | Lives: ${this.lives}`;
-
-    document.getElementById("game").innerHTML = `
-      <div class="room">
-        <div class="title">${r.title}</div>
-        <div class="narrative">${r.text}</div>
-
-        <div class="lock">
-          <div class="dial">0</div>
-          <div class="dial">0</div>
-          <div class="dial">0</div>
-        </div>
-
-        <button onclick="Game.check()">ENTER</button>
-      </div>
-    `;
-
-    this.bind();
-  },
-
-  bind() {
-    document.querySelectorAll(".dial").forEach(d => {
-      d.onclick = () => {
-        let v = parseInt(d.innerText);
-        d.innerText = (v + 1) % 10;
-      };
-    });
-  },
-
-  check() {
-    const input = [...document.querySelectorAll(".dial")]
-      .map(d => d.innerText)
-      .join("");
-
-    const r = this.rooms[this.room];
-
-    if (input === r.answer) {
-      this.room++;
-
-      if (this.room >= this.rooms.length) {
-        alert("YOU ESCAPED!");
-        location.reload();
-      } else {
-        this.render();
+  // ─── ROOM 0: THE LOCKED STUDY ───
+  {
+    name: "The Locked Study",
+    note: "You wake in a candlelit study. Dust motes drift through amber air. The door is sealed with a four-dial combination lock.",
+    clue: "Examine the objects in the room.\nClick anything that seems important.",
+    bgColor: "#0e0b08",
+    renderScene: renderStudy,
+    hotspots: [
+      { id:"portrait", label:"Portrait", x:0.12, y:0.22, w:0.14, h:0.28, action:"inspect", data:"portrait" },
+      { id:"bookshelf", label:"Bookshelf", x:0.35, y:0.1, w:0.28, h:0.55, action:"inspect", data:"bookshelf" },
+      { id:"clock", label:"Mantle Clock", x:0.7, y:0.25, w:0.12, h:0.18, action:"inspect", data:"clock" },
+      { id:"lock", label:"Combination Lock", x:0.44, y:0.72, w:0.14, h:0.16, action:"puzzle", data:"dial-lock" },
+      { id:"desk", label:"Writing Desk", x:0.55, y:0.6, w:0.3, h:0.25, action:"inspect", data:"desk" }
+    ],
+    puzzles: {
+      "dial-lock": {
+        title: "Combination Lock",
+        type: "dials",
+        desc: "A four-dial brass lock seals the door. Each dial runs 0–9. You need to work out the combination from clues in the room.",
+        dials: 4,
+        answer: [7,8,9,5],
+        dialLabels: ["I","II","III","IV"],
+        hint: "Dial I: The Bastille fell in 1789 — what digit is in the tens place? Dial II: Count primes 1–20 (2,3,5,7,11,13,17,19). Dial III: Last digit of 1789. Dial IV: Clock shows 2h 5min before noon = what hour?",
+        onSolve: () => { notify("The lock clicks open!", "success"); advanceRoom(); }
       }
+    },
+    inspectItems: {
+      portrait: {
+        title: "Oil Portrait",
+        desc: "A stern-faced man. A brass plate reads:\n'Colonel H. Ashford, born the year the Bastille fell, 1789.'\nDial I is the TENS digit of that year.",
+        svgFn: drawPortrait
+      },
+      bookshelf: {
+        title: "The Bookshelf",
+        desc: "Dozens of volumes. One spine stands out, labelled:\n'A Treatise on Prime Numbers.'\nInside the cover: 'Between 1 and 20 there are exactly [smudged] prime numbers.'\nDial II is that count.",
+        svgFn: drawBookshelf
+      },
+      clock: {
+        title: "Mantle Clock",
+        desc: "The clock has stopped. Its hands point to 2 hours and 5 minutes before noon.\nWhat hour is that? Dial IV is that hour.\n\nAlso note the year engraved on the base: 1789. Dial III is the last digit.",
+        svgFn: drawClock
+      },
+      desk: {
+        title: "Writing Desk",
+        desc: "Papers scattered everywhere. A note reads:\n'The combination is hidden in plain sight. Study the room carefully — portrait, books, clock. Work out what each object tells you.'",
+        svgFn: drawDesk
+      }
+    }
+  },
 
-    } else {
-      this.lives--;
+  // ─── ROOM 1: THE WINE CELLAR ───
+  {
+    name: "The Wine Cellar",
+    note: "Stone steps lead down to a vaulted cellar. Racks of bottles stretch into shadow. A heavy iron gate blocks the far passage.",
+    clue: "The gate lock needs a 3-letter code.\nSomething about the wine labels…",
+    bgColor: "#09080c",
+    renderScene: renderCellar,
+    hotspots: [
+      { id:"rack1", label:"Wine Rack A", x:0.05, y:0.15, w:0.2, h:0.65, action:"inspect", data:"rack1" },
+      { id:"rack2", label:"Wine Rack B", x:0.3, y:0.15, w:0.2, h:0.65, action:"inspect", data:"rack2" },
+      { id:"rack3", label:"Wine Rack C", x:0.55, y:0.15, w:0.2, h:0.65, action:"inspect", data:"rack3" },
+      { id:"gate", label:"Iron Gate", x:0.78, y:0.2, w:0.18, h:0.65, action:"puzzle", data:"gate-code" }
+    ],
+    puzzles: {
+      "gate-code": {
+        title: "Iron Gate — Letter Lock",
+        type: "word-input",
+        desc: "Three rotating letter dials. Each wine rack holds a bottle with a vintage year. The FIRST LETTER of each year spelled out (in English) gives the code — rack A, B, C in order.",
+        maxLen: 3,
+        answer: "NET",
+        hint: "Rack A: 1900 → NINETEEN HUNDRED → first letter N. Rack B: 1842 → EIGHTEEN FORTY-TWO → first letter E. Rack C: 1756 → SEVENTEEN FIFTY-SIX → first letter S... wait, check each rack label carefully.",
+        onSolve: () => { notify("The gate swings open!", "success"); addInventory("iron-key", "🗝 Iron Key"); advanceRoom(); }
+      }
+    },
+    inspectItems: {
+      rack1: {
+        title: "Wine Rack A",
+        desc: "Each bottle is labelled. The oldest bottle in this rack reads:\n'Château Moreau — Vintage 1900'\nSpell out that year in English. Take the first letter.",
+        svgFn: drawRack1
+      },
+      rack2: {
+        title: "Wine Rack B",
+        desc: "A bottle near eye-level: 'Domaine Lefèvre — Vintage 1842'\nSpell out 1842 in English. Take the first letter.",
+        svgFn: drawRack2
+      },
+      rack3: {
+        title: "Wine Rack C",
+        desc: "A dusty bottle at the bottom: 'Reserve Noire — Vintage 1970'\nSpell out 1970 in English. Take the first letter.",
+        svgFn: drawRack3
+      }
+    }
+  },
 
-      if (this.lives <= 0) {
-        alert("GAME OVER");
-        location.reload();
-      } else {
-        alert("Wrong!");
-        this.render();
+  // ─── ROOM 2: THE ALCHEMIST'S LAB ───
+  {
+    name: "The Alchemist's Lab",
+    note: "Rows of coloured flasks bubble quietly. The air smells of sulfur and old books. A locked cabinet holds what you need next.",
+    clue: "Drag the correct flasks into the\nreaction sequence to open the cabinet.",
+    bgColor: "#080c09",
+    renderScene: renderLab,
+    hotspots: [
+      { id:"formula", label:"Formula Board", x:0.04, y:0.08, w:0.28, h:0.48, action:"inspect", data:"formula" },
+      { id:"cabinet", label:"Locked Cabinet", x:0.72, y:0.1, w:0.24, h:0.75, action:"puzzle", data:"flask-puzzle" },
+      { id:"table", label:"Flask Table", x:0.32, y:0.5, w:0.36, h:0.38, action:"inspect", data:"table" }
+    ],
+    puzzles: {
+      "flask-puzzle": {
+        title: "Flask Sequence",
+        type: "drag-order",
+        desc: "The formula board shows the correct order of elements. Drag the flasks into the right sequence to trigger the reaction.",
+        items: ["🔴 Red (Fe)", "🔵 Blue (H₂O)", "🟡 Yellow (S)", "🟢 Green (Cu)", "🟣 Purple (K)"],
+        answer: [1, 3, 0, 4, 2],
+        hint: "The formula reads: Water first, then copper, then iron, then potassium, last sulfur. Match symbols: H₂O=Blue, Cu=Green, Fe=Red, K=Purple, S=Yellow.",
+        onSolve: () => { notify("The cabinet unlocks with a hiss!", "success"); addInventory("vial", "⚗ Crystal Vial"); advanceRoom(); }
+      }
+    },
+    inspectItems: {
+      formula: {
+        title: "Formula Board",
+        desc: "Chalked equations cover the slate. One formula is circled in red:\n\nREACTION SEQUENCE:\n1. H₂O  →  2. Cu  →  3. Fe  →  4. K  →  5. S\n\nMatch each symbol to its flask colour and drag them in order.",
+        svgFn: drawFormulaBoard
+      },
+      table: {
+        title: "Flask Table",
+        desc: "Five flasks sit on the table, each a different colour:\nRed = Iron (Fe)\nBlue = Water (H₂O)\nYellow = Sulfur (S)\nGreen = Copper (Cu)\nPurple = Potassium (K)",
+        svgFn: drawFlaskTable
+      }
+    }
+  },
+
+  // ─── ROOM 3: THE OBSERVATORY ───
+  {
+    name: "The Observatory",
+    note: "A great brass telescope dominates the domed room. The dome shutter is sealed by a wire puzzle — connect the right terminals to open it.",
+    clue: "Connect the coloured wires to their\nmatching terminals. Don't cross the wrong ones.",
+    bgColor: "#070810",
+    renderScene: renderObservatory,
+    hotspots: [
+      { id:"logbook", label:"Star Logbook", x:0.04, y:0.55, w:0.22, h:0.35, action:"inspect", data:"logbook" },
+      { id:"panel", label:"Control Panel", x:0.68, y:0.4, w:0.28, h:0.45, action:"puzzle", data:"wire-puzzle" },
+      { id:"telescope", label:"Telescope", x:0.28, y:0.1, w:0.38, h:0.6, action:"inspect", data:"telescope" }
+    ],
+    puzzles: {
+      "wire-puzzle": {
+        title: "Wire Connection Panel",
+        type: "wire",
+        desc: "Connect each coloured wire on the LEFT to its matching terminal on the RIGHT. The logbook shows the correct pairings. Click a left terminal, then click the right terminal to connect.",
+        pairs: [
+          {color:"#e05050", label:"RED", match:2},
+          {color:"#5080e0", label:"BLUE", match:0},
+          {color:"#50c070", label:"GREEN", match:3},
+          {color:"#e0c040", label:"YELLOW", match:1}
+        ],
+        hint: "Logbook: Red→Terminal C, Blue→Terminal A, Green→Terminal D, Yellow→Terminal B. Match letter to position (A=0,B=1,C=2,D=3).",
+        onSolve: () => { notify("Dome shutter opening!", "success"); addInventory("star-map", "🗺 Star Map"); advanceRoom(); }
+      }
+    },
+    inspectItems: {
+      logbook: {
+        title: "Star Logbook",
+        desc: "The observer's final entry:\n\n'Wire the panel using the stellar compass:\nRed wire → Terminal C (south)\nBlue wire → Terminal A (north)\nGreen wire → Terminal D (east)\nYellow wire → Terminal B (west)\n\nOnly then will the dome open.'",
+        svgFn: drawLogbook
+      },
+      telescope: {
+        title: "The Great Telescope",
+        desc: "A magnificent instrument. Through the eyepiece you can see a sky full of stars. One constellation is circled on the chart beside it — Orion. The plaque reads: 'The Hunter watches over those who solve what others cannot.'",
+        svgFn: drawTelescope
+      }
+    }
+  },
+
+  // ─── ROOM 4: THE FINAL VAULT ───
+  {
+    name: "The Final Vault",
+    note: "A single heavy door. A keypad. Freedom lies beyond. Three slider dials must be set to exact values derived from what you've discovered.",
+    clue: "Set the three sliders to the correct values.\nYour notes from previous rooms hold the answers.",
+    bgColor: "#0c0808",
+    renderScene: renderVault,
+    hotspots: [
+      { id:"inscription", label:"Wall Inscription", x:0.04, y:0.1, w:0.4, h:0.6, action:"inspect", data:"inscription" },
+      { id:"keypad", label:"Vault Keypad", x:0.55, y:0.2, w:0.38, h:0.65, action:"puzzle", data:"slider-lock" }
+    ],
+    puzzles: {
+      "slider-lock": {
+        title: "Vault — Slider Lock",
+        type: "sliders",
+        desc: "Three sliders control the vault lock. Set each to the correct value.",
+        sliders: [
+          { label: "DIAL I", min:0, max:20, value:10, clue:"The count of prime numbers between 1 and 20" },
+          { label: "DIAL II", min:1800, max:1999, value:1900, clue:"The vintage year on Wine Rack A" },
+          { label: "DIAL III", min:0, max:100, value:50, clue:"Molecular weight of H₂O (H=1, O=16)" }
+        ],
+        answer: [8, 1900, 18],
+        tolerance: [0, 0, 0],
+        hint: "Slider 1: Primes 1–20 are 2,3,5,7,11,13,17,19 = 8 primes. Slider 2: Wine Rack A vintage = 1900. Slider 3: H₂O = 2×1 + 16 = 18.",
+        onSolve: () => { showEnd(true); }
+      }
+    },
+    inspectItems: {
+      inscription: {
+        title: "Wall Inscription",
+        desc: "Carved deep into stone:\n\n'Three values open this door.\nThey were hidden in what you have already seen.\n\nSlider I: the count of primes you encountered.\nSlider II: the year of the oldest wine.\nSlider III: the weight of water itself.\n\nThink back. You already know.'",
+        svgFn: drawInscription
       }
     }
   }
-};
+];
 
-Game.init();
+// ═══════════════════════════════════════════════════════
+// SVG SCENE RENDERERS
+// ═══════════════════════════════════════════════════════
+function renderStudy() {
+  return `<svg viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto">
+    <defs>
+      <radialGradient id="candleG" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#c8a050" stop-opacity="0.4"/><stop offset="100%" stop-color="#c8a050" stop-opacity="0"/></radialGradient>
+      <radialGradient id="roomG" cx="50%" cy="30%" r="70%"><stop offset="0%" stop-color="#1a1208"/><stop offset="100%" stop-color="#0a0804"/></radialGradient>
+    </defs>
+    <rect width="900" height="480" fill="url(#roomG)"/>
+    <!-- floor -->
+    <rect x="0" y="360" width="900" height="120" fill="#0d0906"/>
+    <line x1="0" y1="360" x2="900" y2="360" stroke="#2a1e10" stroke-width="1"/>
+    <!-- floor boards -->
+    ${[0,80,160,240,320,400,480,560,640,720,800].map(x=>`<line x1="${x}" y1="360" x2="${x}" y2="480" stroke="#1a1208" stroke-width="0.5"/>`).join('')}
+    <!-- wall panels -->
+    <rect x="0" y="0" width="900" height="360" fill="none" stroke="#1e160a" stroke-width="0"/>
+    ${[0,150,300,450,600,750].map(x=>`<rect x="${x+10}" y="10" width="130" height="200" rx="2" fill="none" stroke="#1e160a" stroke-width="1"/>`).join('')}
+    <!-- portrait frame -->
+    <rect x="80" y="40" width="120" height="160" rx="2" fill="#1a1208" stroke="#5a4020" stroke-width="3"/>
+    <rect x="84" y="44" width="112" height="152" rx="1" fill="#0d0a06"/>
+    <!-- portrait figure -->
+    <ellipse cx="140" cy="110" rx="28" ry="35" fill="#2a1e10"/>
+    <circle cx="140" cy="82" r="18" fill="#c0a080"/>
+    <rect x="115" y="105" width="50" height="70" rx="4" fill="#1a1208"/>
+    <rect x="120" y="108" width="40" height="8" fill="#3a2a10"/>
+    <!-- portrait text -->
+    <text x="140" y="215" text-anchor="middle" font-family="serif" font-size="7" fill="#8a6040">Col. H. Ashford — 1789</text>
+    <!-- bookshelf -->
+    <rect x="300" y="30" width="260" height="310" rx="2" fill="#1a1208" stroke="#3a2810" stroke-width="2"/>
+    ${[0,1,2,3].map(s=>`
+      <rect x="305" y="${35+s*70}" width="250" height="2" fill="#2a1e10"/>
+      ${[0,1,2,3,4,5,6,7].map(b=>`<rect x="${310+b*28}" y="${40+s*70}" width="${14+Math.sin(b+s)*4|0}" height="62" rx="1" fill="${['#3a1a0a','#1a2a3a','#2a3a1a','#2a1a3a','#3a2a0a','#1a3a2a','#3a1a1a','#1a3a3a'][b]}" stroke="#0a0806" stroke-width="0.5"/>
+      <text x="${320+b*28}" y="${78+s*70}" text-anchor="middle" font-size="4" fill="#60504030" font-family="serif" transform="rotate(-90,${320+b*28},${62+s*70})">${['PRIMES','HIST','MATH','ASTRO','CHEM','FLORA','GEOG','MISC'][b]}</text>
+      `).join('')}
+    `).join('')}
+    <!-- mantle + clock -->
+    <rect x="620" y="180" width="160" height="20" rx="1" fill="#2a1e10" stroke="#3a2810" stroke-width="1"/>
+    <rect x="640" y="110" width="120" height="70" rx="2" fill="#1a1208" stroke="#3a2810" stroke-width="2"/>
+    <!-- clock face -->
+    <circle cx="700" cy="145" r="28" fill="#0d0a06" stroke="#c8a050" stroke-width="2"/>
+    <circle cx="700" cy="145" r="24" fill="#0f0c08" stroke="#5a4020" stroke-width="0.5"/>
+    ${[0,30,60,90,120,150,180,210,240,270,300,330].map((a,i)=>`<line x1="${700+21*Math.sin(a*Math.PI/180)}" y1="${145-21*Math.cos(a*Math.PI/180)}" x2="${700+23*Math.sin(a*Math.PI/180)}" y2="${145-23*Math.cos(a*Math.PI/180)}" stroke="#c8a050" stroke-width="${i%3===0?1.5:0.5}"/>`).join('')}
+    <!-- clock hands: 9:55 -->
+    <line x1="700" y1="145" x2="${700+14*Math.sin(-5*Math.PI/180)}" y2="${145-14*Math.cos(-5*Math.PI/180)}" stroke="#e8c070" stroke-width="2" stroke-linecap="round"/>
+    <line x1="700" y1="145" x2="${700+20*Math.sin(330*Math.PI/180)}" y2="${145-20*Math.cos(330*Math.PI/180)}" stroke="#e8c070" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="700" cy="145" r="2" fill="#c8a050"/>
+    <!-- door with lock -->
+    <rect x="370" y="260" width="160" height="200" rx="2" fill="#1a1208" stroke="#3a2810" stroke-width="2"/>
+    <rect x="390" y="275" width="55" height="90" rx="1" fill="#0d0a06" stroke="#2a1e10" stroke-width="0.5"/>
+    <rect x="455" y="275" width="55" height="90" rx="1" fill="#0d0a06" stroke="#2a1e10" stroke-width="0.5"/>
+    <!-- lock -->
+    <rect x="408" y="375" width="85" height="55" rx="4" fill="#2a2010" stroke="#c8a050" stroke-width="1.5"/>
+    ${[0,1,2,3].map(i=>`
+      <circle cx="${418+i*20}" cy="395" r="8" fill="#1a1508" stroke="#c8a050" stroke-width="1"/>
+      <text x="${418+i*20}" y="399" text-anchor="middle" font-size="9" fill="#c8a050" font-family="'Share Tech Mono',monospace">?</text>
+    `).join('')}
+    <!-- candle glow -->
+    <ellipse cx="550" cy="200" rx="120" ry="80" fill="url(#candleG)" opacity="0.6"/>
+    <!-- candle -->
+    <rect x="543" y="170" width="14" height="45" rx="1" fill="#e8dcc0"/>
+    <ellipse cx="550" cy="170" rx="3" ry="6" fill="#f0c040"/>
+    <!-- desk -->
+    <rect x="490" y="320" width="220" height="120" rx="2" fill="#1a1208" stroke="#2a1810" stroke-width="1"/>
+    <rect x="494" y="316" width="212" height="12" rx="1" fill="#2a1e10"/>
+    <!-- papers -->
+    <rect x="510" y="324" width="60" height="80" rx="1" fill="#d4cbb0" transform="rotate(-3,540,364)"/>
+    <rect x="520" y="328" width="60" height="80" rx="1" fill="#ccc4a8" transform="rotate(2,550,368)"/>
+    <!-- hotspot glows -->
+    <circle cx="140" cy="120" r="55" fill="#c8a050" opacity="0.04"/>
+    <circle cx="430" cy="180" r="80" fill="#c8a050" opacity="0.03"/>
+    <circle cx="700" cy="145" r="45" fill="#c8a050" opacity="0.05"/>
+    <circle cx="450" cy="400" r="40" fill="#c8a050" opacity="0.06"/>
+  </svg>`;
+}
+
+function renderCellar() {
+  return `<svg viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto">
+    <rect width="900" height="480" fill="#09080c"/>
+    <!-- stone walls -->
+    ${Array.from({length:6},(_,r)=>Array.from({length:12},(_,c)=>`<rect x="${c*76+(r%2?38:0)}" y="${r*40}" width="72" height="38" rx="1" fill="${r%2===0?'#0e0c12':'#0c0a10'}" stroke="#1a1820" stroke-width="0.5"/>`).join('')).join('')}
+    <!-- floor -->
+    <rect x="0" y="360" width="900" height="120" fill="#0a0908"/>
+    ${Array.from({length:12},(_,i)=>`<rect x="${i*76}" y="360" width="72" height="120" fill="${i%2?'#0c0b09':'#0a0908'}" stroke="#151210" stroke-width="0.5"/>`).join('')}
+    <!-- rack A -->
+    <rect x="40" y="60" width="160" height="290" rx="2" fill="#1a1420" stroke="#3a2a50" stroke-width="1.5"/>
+    ${Array.from({length:5},(_,r)=>Array.from({length:3},(_,c)=>`
+      <ellipse cx="${75+c*36}" cy="${120+r*44}" rx="12" ry="30" fill="${['#4a0808','#6a1010','#380608'][c]}" stroke="#2a0a0a" stroke-width="0.5"/>
+      <rect x="${63+c*36}" y="${93+r*44}" width="24" height="8" rx="2" fill="#c8a050" opacity="0.8"/>
+    `).join('')).join('')}
+    <text x="120" y="360" text-anchor="middle" font-family="serif" font-size="11" fill="#c8a050">Rack A</text>
+    <text x="120" y="374" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#807060">VINTAGE 1900</text>
+    <!-- rack B -->
+    <rect x="260" y="60" width="160" height="290" rx="2" fill="#1a1420" stroke="#3a2a50" stroke-width="1.5"/>
+    ${Array.from({length:5},(_,r)=>Array.from({length:3},(_,c)=>`
+      <ellipse cx="${295+c*36}" cy="${120+r*44}" rx="12" ry="30" fill="${['#0a2a4a','#0a1a3a','#0a0a2a'][c]}" stroke="#0a0a1a" stroke-width="0.5"/>
+      <rect x="${283+c*36}" y="${93+r*44}" width="24" height="8" rx="2" fill="#c8a050" opacity="0.8"/>
+    `).join('')).join('')}
+    <text x="340" y="360" text-anchor="middle" font-family="serif" font-size="11" fill="#c8a050">Rack B</text>
+    <text x="340" y="374" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#807060">VINTAGE 1842</text>
+    <!-- rack C -->
+    <rect x="480" y="60" width="160" height="290" rx="2" fill="#1a1420" stroke="#3a2a50" stroke-width="1.5"/>
+    ${Array.from({length:5},(_,r)=>Array.from({length:3},(_,c)=>`
+      <ellipse cx="${515+c*36}" cy="${120+r*44}" rx="12" ry="30" fill="${['#1a3a0a','#0a2a0a','#0a1a06'][c]}" stroke="#0a1a0a" stroke-width="0.5"/>
+      <rect x="${503+c*36}" y="${93+r*44}" width="24" height="8" rx="2" fill="#c8a050" opacity="0.8"/>
+    `).join('')).join('')}
+    <text x="560" y="360" text-anchor="middle" font-family="serif" font-size="11" fill="#c8a050">Rack C</text>
+    <text x="560" y="374" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#807060">VINTAGE 1970</text>
+    <!-- gate -->
+    <rect x="700" y="40" width="160" height="380" rx="2" fill="none" stroke="#504030" stroke-width="2"/>
+    ${Array.from({length:8},(_,i)=>`<line x1="${710+i*18}" y1="42" x2="${710+i*18}" y2="418" stroke="#403020" stroke-width="4"/>`).join('')}
+    ${Array.from({length:5},(_,i)=>`<line x1="702" y1="${60+i*64}" x2="858" y2="${60+i*64}" stroke="#302010" stroke-width="3"/>`).join('')}
+    <rect x="760" y="190" width="60" height="40" rx="4" fill="#1a1408" stroke="#c8a050" stroke-width="1.5"/>
+    <text x="790" y="215" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="10" fill="#c8a050">???</text>
+    <!-- torches -->
+    ${[100,840].map(x=>`
+      <rect x="${x-4}" y="140" width="8" height="30" rx="2" fill="#2a1e10"/>
+      <ellipse cx="${x}" cy="135" rx="6" ry="10" fill="#f0a020" opacity="0.9"/>
+      <ellipse cx="${x}" cy="120" rx="25" ry="35" fill="#f0a020" opacity="0.1"/>
+    `).join('')}
+  </svg>`;
+}
+
+function renderLab() {
+  return `<svg viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto">
+    <rect width="900" height="480" fill="#080c09"/>
+    <!-- walls -->
+    <rect x="0" y="0" width="900" height="360" fill="#0a0f0b"/>
+    <rect x="0" y="360" width="900" height="120" fill="#080a08"/>
+    <!-- tile floor -->
+    ${Array.from({length:10},(_,r)=>Array.from({length:14},(_,c)=>`<rect x="${c*64}" y="${360+r*16}" width="63" height="15" fill="${(r+c)%2?'#0a0c0a':'#080a08'}" stroke="#0c0e0c" stroke-width="0.3"/>`).join('')).join('')}
+    <!-- formula board -->
+    <rect x="20" y="30" width="220" height="250" rx="2" fill="#101a12" stroke="#2a4a2a" stroke-width="2"/>
+    <rect x="25" y="35" width="210" height="240" rx="1" fill="#0c160e"/>
+    <text x="130" y="58" text-anchor="middle" font-family="serif" font-size="12" fill="#80c090">REACTION SEQUENCE</text>
+    <line x1="30" y1="65" x2="230" y2="65" stroke="#2a4a2a" stroke-width="0.5"/>
+    ${['1. H₂O (Blue)','2. Cu (Green)','3. Fe (Red)','4. K (Purple)','5. S (Yellow)'].map((t,i)=>`<text x="45" y="${85+i*32}" font-family="'Share Tech Mono',monospace" font-size="11" fill="#60a070">→ ${t}</text>`).join('')}
+    <!-- shelves with flasks -->
+    ${[0,1,2].map(s=>`
+      <rect x="250" y="${30+s*90}" width="380" height="8" rx="1" fill="#1a2a1a" stroke="#2a3a2a" stroke-width="0.5"/>
+      ${[0,1,2,3,4].map(f=>`
+        <rect x="${268+f*64}" y="${38+s*90}" width="24" height="44" rx="2" fill="${['#3a0808','#0a1a3a','#3a3a08','#0a2a0a','#2a0a3a'][f]}" stroke="${['#6a1010','#1a3a6a','#6a6a10','#1a5a1a','#5a1a6a'][f]}" stroke-width="1" opacity="0.85"/>
+        <ellipse cx="${280+f*64}" cy="${38+s*90}" rx="8" ry="5" fill="${['#c05050','#5080c0','#c0c050','#50c070','#a050c0'][f]}" opacity="0.6"/>
+        <text x="${280+f*64}" y="${63+s*90}" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="7" fill="#c0d0c0">${['Fe','H₂O','S','Cu','K'][f]}</text>
+      `).join('')}
+    `).join('')}
+    <!-- flask table -->
+    <rect x="260" y="310" width="360" height="14" rx="1" fill="#1a2a1a" stroke="#2a3a2a"/>
+    <rect x="260" y="324" width="360" height="90" rx="2" fill="#0c140d" stroke="#1a2a1a"/>
+    ${[0,1,2,3,4].map(f=>`
+      <rect x="${280+f*56}" y="330" width="32" height="58" rx="3" fill="${['#3a0808','#0a1a3a','#3a3a08','#0a2a0a','#2a0a3a'][f]}" stroke="${['#6a1010','#1a3a6a','#6a6a10','#1a5a1a','#5a1a6a'][f]}" stroke-width="1.5" opacity="0.9"/>
+      <ellipse cx="${296+f*56}" cy="330" rx="10" ry="6" fill="${['#c05050','#5080c0','#c0c050','#50c070','#a050c0'][f]}" opacity="0.8"/>
+    `).join('')}
+    <!-- cabinet -->
+    <rect x="680" y="30" width="200" height="390" rx="3" fill="#101a12" stroke="#2a4a2a" stroke-width="2"/>
+    <rect x="688" y="38" width="184" height="190" rx="2" fill="#0a120b" stroke="#1a2a1a" stroke-width="0.5"/>
+    <rect x="688" y="234" width="184" height="180" rx="2" fill="#0a120b" stroke="#1a2a1a" stroke-width="0.5"/>
+    <rect x="760" y="200" width="60" height="38" rx="4" fill="#0c160e" stroke="#50a060" stroke-width="1.5"/>
+    <text x="790" y="223" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="10" fill="#50a060">LOCKED</text>
+    <!-- green glow over lab -->
+    <ellipse cx="450" cy="200" rx="300" ry="150" fill="#20a040" opacity="0.03"/>
+  </svg>`;
+}
+
+function renderObservatory() {
+  return `<svg viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto">
+    <rect width="900" height="480" fill="#070810"/>
+    <!-- dome sky -->
+    <ellipse cx="450" cy="-100" rx="500" ry="400" fill="#0a0d1a"/>
+    <!-- stars -->
+    ${Array.from({length:80},()=>`<circle cx="${Math.random()*900|0}" cy="${Math.random()*280|0}" r="${Math.random()*1.5+0.3}" fill="white" opacity="${Math.random()*0.8+0.2}"/>`).join('')}
+    <!-- dome ring -->
+    <ellipse cx="450" cy="180" rx="420" ry="40" fill="none" stroke="#2a3050" stroke-width="3"/>
+    <!-- dome struts -->
+    ${Array.from({length:12},(_,i)=>`<line x1="450" y1="0" x2="${450+420*Math.sin(i*30*Math.PI/180)}" y2="${180+40*Math.cos(i*30*Math.PI/180)}" stroke="#1a2030" stroke-width="1.5" opacity="0.6"/>`).join('')}
+    <!-- floor -->
+    <rect x="0" y="360" width="900" height="120" fill="#0a0c10"/>
+    <!-- telescope -->
+    <rect x="370" y="100" width="160" height="260" rx="4" fill="#1a1e2a" stroke="#3a4060" stroke-width="2"/>
+    <rect x="350" y="80" width="200" height="30" rx="3" fill="#2a2e3a" stroke="#4a5070" stroke-width="1.5"/>
+    <rect x="400" y="50" width="100" height="60" rx="2" fill="#1e2230" stroke="#3a4060" stroke-width="1.5" transform="rotate(-20,450,80)"/>
+    <circle cx="450" cy="240" r="50" fill="#0d1018" stroke="#3a4060" stroke-width="3"/>
+    <circle cx="450" cy="240" r="40" fill="#060810" stroke="#2a3050" stroke-width="1"/>
+    <!-- lens reflection -->
+    <ellipse cx="440" cy="228" rx="12" ry="8" fill="#4060a0" opacity="0.4"/>
+    <!-- tripod -->
+    <line x1="450" y1="360" x2="350" y2="430" stroke="#2a2e40" stroke-width="6" stroke-linecap="round"/>
+    <line x1="450" y1="360" x2="450" y2="440" stroke="#2a2e40" stroke-width="6" stroke-linecap="round"/>
+    <line x1="450" y1="360" x2="550" y2="430" stroke="#2a2e40" stroke-width="6" stroke-linecap="round"/>
+    <!-- logbook -->
+    <rect x="20" y="330" width="180" height="110" rx="3" fill="#1a150a" stroke="#3a2a10" stroke-width="1.5"/>
+    <rect x="26" y="336" width="168" height="98" rx="2" fill="#d4c8a0"/>
+    <text x="110" y="355" text-anchor="middle" font-family="serif" font-size="9" fill="#3a2a10">OBSERVER'S LOG</text>
+    <line x1="30" y1="360" x2="190" y2="360" stroke="#3a2a10" stroke-width="0.5"/>
+    ${['Red → Terminal C','Blue → Terminal A','Green → Terminal D','Yellow → Terminal B'].map((t,i)=>`<text x="35" y="${372+i*14}" font-family="'Share Tech Mono',monospace" font-size="7" fill="#2a1a08">${t}</text>`).join('')}
+    <!-- control panel -->
+    <rect x="660" y="200" width="220" height="220" rx="4" fill="#0e1018" stroke="#3a4060" stroke-width="2"/>
+    <text x="770" y="222" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#5060a0">DOME CONTROL</text>
+    <!-- terminals left -->
+    ${[0,1,2,3].map(i=>`
+      <circle cx="690" cy="${250+i*36}" r="8" fill="${['#3a0808','#0a1a3a','#0a2a0a','#3a3a08'][i]}" stroke="${['#c05050','#5080c0','#50c070','#c0c050'][i]}" stroke-width="2"/>
+      <text x="706" y="${255+i*36}" font-family="'Share Tech Mono',monospace" font-size="9" fill="#6070a0">${['RED','BLUE','GREEN','YELL'][i]}</text>
+    `).join('')}
+    <!-- terminals right -->
+    ${[0,1,2,3].map(i=>`
+      <circle cx="840" cy="${250+i*36}" r="8" fill="#0e1018" stroke="#3a4060" stroke-width="2"/>
+      <text x="826" y="${255+i*36}" text-anchor="end" font-family="'Share Tech Mono',monospace" font-size="9" fill="#6070a0">${['A','B','C','D'][i]}</text>
+    `).join('')}
+  </svg>`;
+}
+
+function renderVault() {
+  return `<svg viewBox="0 0 900 480" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto">
+    <rect width="900" height="480" fill="#0c0808"/>
+    <!-- stone texture -->
+    ${Array.from({length:8},(_,r)=>Array.from({length:6},(_,c)=>`<rect x="${c*150+(r%2?75:0)}" y="${r*60}" width="148" height="58" rx="1" fill="${r%2?'#0e0a08':'#0c0908'}" stroke="#180e0a" stroke-width="0.5"/>`).join('')).join('')}
+    <!-- inscription wall -->
+    <rect x="20" y="40" width="380" height="340" rx="3" fill="#0f0c0a" stroke="#3a2818" stroke-width="2"/>
+    <text x="210" y="68" text-anchor="middle" font-family="'Cinzel',serif" font-size="13" fill="#c8a050" letter-spacing="4">FINAL VAULT</text>
+    <line x1="30" y1="78" x2="392" y2="78" stroke="#3a2818" stroke-width="1"/>
+    ${['Three values open this door.','They were hidden in what you have seen.','','Slider I: the count of primes.','Slider II: the year of the oldest wine.','Slider III: the weight of water.','','Think back. You already know.'].map((t,i)=>`<text x="210" y="${100+i*30}" text-anchor="middle" font-family="serif" font-size="12" fill="${i===0||i===7?'#a08050':'#706050'}" font-style="${t?'italic':'normal'}">${t}</text>`).join('')}
+    <!-- vault door -->
+    <rect x="470" y="30" width="400" height="420" rx="4" fill="#1a100c" stroke="#5a3820" stroke-width="4"/>
+    <rect x="480" y="40" width="380" height="400" rx="3" fill="#140e0a" stroke="#3a2818" stroke-width="2"/>
+    <!-- vault bolts -->
+    ${[0,1,2,3,4].map(i=>`
+      <circle cx="488" cy="${70+i*72}" r="12" fill="#1e1408" stroke="#5a3820" stroke-width="2"/>
+      <circle cx="848" cy="${70+i*72}" r="12" fill="#1e1408" stroke="#5a3820" stroke-width="2"/>
+    `).join('')}
+    <!-- handle -->
+    <circle cx="668" cy="230" r="50" fill="#1e1408" stroke="#c8a050" stroke-width="3"/>
+    <circle cx="668" cy="230" r="36" fill="#160e08" stroke="#5a3820" stroke-width="1.5"/>
+    ${[0,60,120,180,240,300].map(a=>`<line x1="668" y1="230" x2="${668+36*Math.sin(a*Math.PI/180)}" y2="${230-36*Math.cos(a*Math.PI/180)}" stroke="#3a2818" stroke-width="1.5"/>`).join('')}
+    <!-- sliders panel -->
+    <rect x="510" y="290" width="316" height="130" rx="3" fill="#0e0c0a" stroke="#3a2818" stroke-width="1"/>
+    <text x="668" y="310" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#807050">SET COMBINATION</text>
+    ${[0,1,2].map(i=>`
+      <rect x="520" y="${322+i*28}" width="296" height="18" rx="2" fill="#1a1208" stroke="#2a1e10" stroke-width="0.5"/>
+      <rect x="524" y="${325+i*28}" width="60" height="12" rx="1" fill="#c8a050" opacity="0.4"/>
+      <text x="528" y="${334+i*28}" font-family="'Share Tech Mono',monospace" font-size="8" fill="#80602c">${['DIAL I','DIAL II','DIAL III'][i]}</text>
+    `).join('')}
+    <!-- ambient glow -->
+    <ellipse cx="668" cy="240" rx="200" ry="150" fill="#c86020" opacity="0.04"/>
+  </svg>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// INSPECT ITEM SVGs
+// ═══════════════════════════════════════════════════════
+function drawPortrait(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#0d0a06"/>
+    <rect x="10" y="10" width="380" height="180" rx="2" fill="#1a1208" stroke="#5a4020" stroke-width="2"/>
+    <circle cx="200" cy="75" r="35" fill="#c0a080"/>
+    <rect x="140" y="108" width="120" height="80" rx="4" fill="#1a1208"/>
+    <rect x="150" y="112" width="100" height="12" fill="#3a2a10"/>
+    <text x="200" y="180" text-anchor="middle" font-family="serif" font-size="11" fill="#8a6040">Col. H. Ashford</text>
+    <text x="200" y="195" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#c8a050">Born: 1789 — Year the Bastille Fell</text>`;
+}
+function drawBookshelf(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#1a1208"/>
+    ${[0,1,2,3,4,5,6,7,8,9].map(i=>`<rect x="${10+i*38}" y="20" width="32" height="150" rx="1" fill="${['#3a1a0a','#1a2a3a','#2a3a1a','#2a1a3a','#3a2a0a','#1a3a2a','#3a1a1a','#1a3a3a','#2a2a1a','#1a1a3a'][i]}" stroke="#0a0806" stroke-width="0.5"/>`).join('')}
+    <rect x="8" y="170" width="385" height="6" rx="1" fill="#2a1e10"/>
+    <rect x="140" y="15" width="36" height="155" rx="1" fill="#c8a050" stroke="#a07030" stroke-width="1"/>
+    <text x="158" y="100" text-anchor="middle" font-size="7" fill="#0a0806" font-family="serif" transform="rotate(90,158,100)">ON PRIMES</text>
+    <text x="200" y="190" text-anchor="middle" font-family="serif" font-size="10" fill="#a08060">The golden book notes the count of primes 1–20</text>`;
+}
+function drawClock(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#0d0a06"/>
+    <rect x="100" y="10" width="200" height="170" rx="4" fill="#1a1208" stroke="#5a4020" stroke-width="2"/>
+    <circle cx="200" cy="95" r="65" fill="#0f0c08" stroke="#c8a050" stroke-width="3"/>
+    <circle cx="200" cy="95" r="58" fill="#0d0a06" stroke="#3a2810" stroke-width="0.5"/>
+    ${[0,30,60,90,120,150,180,210,240,270,300,330].map((a,i)=>`<line x1="${200+52*Math.sin(a*Math.PI/180)}" y1="${95-52*Math.cos(a*Math.PI/180)}" x2="${200+58*Math.sin(a*Math.PI/180)}" y2="${95-58*Math.cos(a*Math.PI/180)}" stroke="#c8a050" stroke-width="${i%3===0?2:0.8}"/>`).join('')}
+    ${[1,2,3,4,5,6,7,8,9,10,11,12].map((n,i)=>`<text x="${200+44*Math.sin(i*30*Math.PI/180)}" y="${95-44*Math.cos(i*30*Math.PI/180)+4}" text-anchor="middle" font-size="9" fill="#c8a050" font-family="serif">${n}</text>`).join('')}
+    <line x1="200" y1="95" x2="${200+35*Math.sin(-5*Math.PI/180)}" y2="${95-35*Math.cos(-5*Math.PI/180)}" stroke="#e8c070" stroke-width="3" stroke-linecap="round"/>
+    <line x1="200" y1="95" x2="${200+50*Math.sin((-60)*Math.PI/180)}" y2="${95-50*Math.cos((-60)*Math.PI/180)}" stroke="#e8c070" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="200" cy="95" r="3" fill="#c8a050"/>
+    <text x="200" y="185" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#c8a050">Stopped: 2h 5min before noon = 9:55</text>`;
+}
+function drawDesk(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#1a1208"/>
+    <rect x="20" y="30" width="280" height="140" rx="2" fill="#d4cbb0" transform="rotate(-2,160,100)"/>
+    <rect x="30" y="40" width="280" height="140" rx="2" fill="#ccc4a8" transform="rotate(1,170,110)"/>
+    <text x="175" y="80" text-anchor="middle" font-family="serif" font-size="12" fill="#2a1a08">The combination</text>
+    <text x="175" y="98" text-anchor="middle" font-family="serif" font-size="11" fill="#3a2a10" font-style="italic">is hidden in plain sight.</text>
+    <text x="175" y="116" text-anchor="middle" font-family="serif" font-size="11" fill="#3a2a10" font-style="italic">Portrait. Books. Clock.</text>
+    <text x="175" y="140" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#605040">— Dial I: tens digit of birth year</text>
+    <text x="175" y="155" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#605040">— Dial II: count of primes 1–20</text>
+    <text x="175" y="170" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#605040">— Dial III: last digit of 1789</text>
+    <text x="175" y="185" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="#605040">— Dial IV: hour the clock shows</text>`;
+}
+function drawRack1(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#09080c"/>
+    <rect x="20" y="10" width="360" height="170" rx="3" fill="#14101c" stroke="#3a2a50" stroke-width="1.5"/>
+    <ellipse cx="200" cy="100" rx="40" ry="80" fill="#4a0808" stroke="#2a0a0a" stroke-width="1"/>
+    <rect x="170" y="30" width="60" height="20" rx="3" fill="#f0e8c0"/>
+    <text x="200" y="44" text-anchor="middle" font-family="serif" font-size="8" fill="#2a1a08">Château Moreau</text>
+    <rect x="160" y="130" width="80" height="30" rx="2" fill="#d4c890"/>
+    <text x="200" y="148" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="10" fill="#2a1a08">VINTAGE</text>
+    <text x="200" y="163" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="14" fill="#8a5020" font-weight="bold">1900</text>
+    <text x="200" y="192" text-anchor="middle" font-family="serif" font-size="10" fill="#c8a050" font-style="italic">Nineteen Hundred → first letter: N</text>`;
+}
+function drawRack2(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#09080c"/>
+    <rect x="20" y="10" width="360" height="170" rx="3" fill="#14101c" stroke="#3a2a50" stroke-width="1.5"/>
+    <ellipse cx="200" cy="100" rx="40" ry="80" fill="#0a2a4a" stroke="#0a0a1a" stroke-width="1"/>
+    <rect x="165" y="40" width="70" height="20" rx="3" fill="#f0e8c0"/>
+    <text x="200" y="54" text-anchor="middle" font-family="serif" font-size="8" fill="#2a1a08">Domaine Lefèvre</text>
+    <rect x="160" y="130" width="80" height="30" rx="2" fill="#d4c890"/>
+    <text x="200" y="148" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="10" fill="#2a1a08">VINTAGE</text>
+    <text x="200" y="163" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="14" fill="#204080" font-weight="bold">1842</text>
+    <text x="200" y="192" text-anchor="middle" font-family="serif" font-size="10" fill="#c8a050" font-style="italic">Eighteen Forty-Two → first letter: E</text>`;
+}
+function drawRack3(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#09080c"/>
+    <rect x="20" y="10" width="360" height="170" rx="3" fill="#14101c" stroke="#3a2a50" stroke-width="1.5"/>
+    <ellipse cx="200" cy="100" rx="40" ry="80" fill="#1a3a0a" stroke="#0a1a0a" stroke-width="1"/>
+    <rect x="165" y="40" width="70" height="20" rx="3" fill="#f0e8c0"/>
+    <text x="200" y="54" text-anchor="middle" font-family="serif" font-size="8" fill="#2a1a08">Réserve Noire</text>
+    <rect x="160" y="130" width="80" height="30" rx="2" fill="#d4c890"/>
+    <text x="200" y="148" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="10" fill="#2a1a08">VINTAGE</text>
+    <text x="200" y="163" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="14" fill="#204020" font-weight="bold">1970</text>
+    <text x="200" y="192" text-anchor="middle" font-family="serif" font-size="10" fill="#c8a050" font-style="italic">Nineteen Seventy → first letter: N</text>`;
+}
+function drawFormulaBoard(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#0c160e"/>
+    <text x="200" y="28" text-anchor="middle" font-family="serif" font-size="13" fill="#80c090">REACTION SEQUENCE</text>
+    <line x1="10" y1="35" x2="390" y2="35" stroke="#2a4a2a" stroke-width="0.5"/>
+    ${['1. H₂O  →  Blue Flask','2. Cu   →  Green Flask','3. Fe   →  Red Flask','4. K    →  Purple Flask','5. S    →  Yellow Flask'].map((t,i)=>`<text x="30" y="${55+i*28}" font-family="'Share Tech Mono',monospace" font-size="11" fill="${['#5080c0','#50c070','#c05050','#a050c0','#c0c050'][i]}">${t}</text>`).join('')}`;
+}
+function drawFlaskTable(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#080c09"/>
+    ${[0,1,2,3,4].map(i=>`
+      <rect x="${30+i*72}" y="30" width="50" height="120" rx="4" fill="${['#3a0808','#0a1a3a','#3a3a08','#0a2a0a','#2a0a3a'][i]}" stroke="${['#c05050','#5080c0','#c0c050','#50c070','#a050c0'][i]}" stroke-width="1.5"/>
+      <ellipse cx="${55+i*72}" cy="30" rx="18" ry="10" fill="${['#c05050','#5080c0','#c0c050','#50c070','#a050c0'][i]}" opacity="0.8"/>
+      <text x="${55+i*72}" y="100" text-anchor="middle" font-family="'Share Tech Mono',monospace" font-size="9" fill="white">${['Fe','H₂O','S','Cu','K'][i]}</text>
+      <text x="${55+i*72}" y="170" text-anchor="middle" font-family="serif" font-size="9" fill="#80a080">${['Red','Blue','Yellow','Green','Purple'][i]}</text>
+    `).join('')}`;
+}
+function drawLogbook(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#d4c8a0"/>
+    <text x="200" y="24" text-anchor="middle" font-family="serif" font-size="12" fill="#2a1a08" font-weight="bold">OBSERVER'S LOG — Final Entry</text>
+    <line x1="10" y1="30" x2="390" y2="30" stroke="#3a2a10" stroke-width="0.5"/>
+    ${['Wire the panel using the stellar compass:','','Red wire   →  Terminal C (south)','Blue wire  →  Terminal A (north)','Green wire →  Terminal D (east)','Yellow wire→  Terminal B (west)','','— Only then will the dome open.'].map((t,i)=>`<text x="20" y="${48+i*18}" font-family="${i===0||i===7?'serif':"'Share Tech Mono',monospace"}" font-size="${i===0||i===7?11:10}" fill="${i===0||i===7?'#3a2a10':'#1a1008'}" font-style="${i===7?'italic':'normal'}">${t}</text>`).join('')}`;
+}
+function drawTelescope(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#070810"/>
+    ${Array.from({length:40},()=>`<circle cx="${Math.random()*400|0}" cy="${Math.random()*200|0}" r="${Math.random()*1.5+0.2}" fill="white" opacity="${Math.random()*0.9+0.1}"/>`).join('')}
+    <rect x="180" y="20" width="40" height="160" rx="3" fill="#1a1e2a" stroke="#3a4060" stroke-width="1.5"/>
+    <rect x="160" y="10" width="80" height="20" rx="2" fill="#2a2e3a" stroke="#4a5070" stroke-width="1"/>
+    <circle cx="200" cy="100" r="35" fill="#060810" stroke="#3a4060" stroke-width="2"/>
+    <ellipse cx="194" cy="92" rx="10" ry="7" fill="#4060a0" opacity="0.5"/>
+    <text x="200" y="190" text-anchor="middle" font-family="serif" font-size="10" fill="#5060a0" font-style="italic">"The Hunter watches over those who solve what others cannot."</text>`;
+}
+function drawInscription(el) {
+  el.setAttribute('viewBox','0 0 400 200');
+  el.innerHTML = `<rect width="400" height="200" fill="#0c0908"/>
+    <rect x="10" y="10" width="380" height="180" rx="2" fill="#0f0c0a" stroke="#3a2818" stroke-width="1.5"/>
+    <text x="200" y="35" text-anchor="middle" font-family="'Cinzel',serif" font-size="12" fill="#c8a050" letter-spacing="3">FINAL VAULT</text>
+    <line x1="20" y1="44" x2="380" y2="44" stroke="#3a2818" stroke-width="0.5"/>
+    ${['Three values open this door.','','Slider I: count of primes 1–20','Slider II: year of the oldest wine','Slider III: molecular weight of H₂O','','Think back. You already know.'].map((t,i)=>`<text x="200" y="${62+i*20}" text-anchor="middle" font-family="serif" font-size="11" fill="${i===0||i===6?'#a08050':'#604030'}" font-style="italic">${t}</text>`).join('')}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER ENGINE
+// ═══════════════════════════════════════════════════════
+function renderRoom() {
+  const room = ROOMS[state.room];
+  document.getElementById('room-name').textContent = room.name;
+  document.getElementById('journal-text').textContent = room.note;
+  document.getElementById('journal-clue').textContent = room.clue;
+
+  // Scene
+  document.getElementById('room-scene').innerHTML = room.renderScene();
+
+  // Overlay hotspot divs
+  const sceneEl = document.getElementById('room-scene');
+  const svg = sceneEl.querySelector('svg');
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:absolute;inset:0;pointer-events:none';
+  svg.style.position = 'relative';
+  sceneEl.style.position = 'relative';
+
+  room.hotspots.forEach(hs => {
+    const div = document.createElement('div');
+    div.style.cssText = `position:absolute;left:${hs.x*100}%;top:${hs.y*100}%;width:${hs.w*100}%;height:${hs.h*100}%;cursor:pointer;pointer-events:all;border:1px solid transparent;border-radius:2px;transition:all 0.2s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px`;
+    div.setAttribute('title', hs.label);
+    div.addEventListener('mouseenter', () => {
+      div.style.border = '1px solid rgba(200,160,80,0.4)';
+      div.style.background = 'rgba(200,160,80,0.06)';
+      div.querySelector('.hs-tag').style.opacity = '1';
+    });
+    div.addEventListener('mouseleave', () => {
+      div.style.border = '1px solid transparent';
+      div.style.background = 'transparent';
+      div.querySelector('.hs-tag').style.opacity = '0';
+    });
+    const tag = document.createElement('div');
+    tag.className = 'hs-tag';
+    tag.style.cssText = 'opacity:0;transition:opacity 0.2s;background:rgba(10,8,6,0.85);border:1px solid rgba(200,160,80,0.5);border-radius:2px;padding:2px 7px;font-family:Share Tech Mono,monospace;font-size:10px;color:#c8a050;pointer-events:none;white-space:nowrap';
+    tag.textContent = hs.label;
+    div.appendChild(tag);
+
+    div.addEventListener('click', () => {
+      if (hs.action === 'inspect') openInspect(hs.data);
+      else if (hs.action === 'puzzle') openPuzzle(hs.data);
+    });
+    wrapper.appendChild(div);
+  });
+  sceneEl.appendChild(wrapper);
+
+  renderProgress();
+  renderLives();
+}
+
+function renderProgress() {
+  const el = document.getElementById('prog-dots');
+  el.innerHTML = '';
+  ROOMS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'pdot' + (i < state.room ? ' done' : i === state.room ? ' active' : '');
+    el.appendChild(d);
+  });
+}
+
+function renderLives() {
+  const el = document.getElementById('lives');
+  el.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const s = document.createElement('span');
+    s.className = 'life' + (i >= state.lives ? ' lost' : '');
+    s.textContent = '♥';
+    el.appendChild(s);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INSPECT
+// ═══════════════════════════════════════════════════════
+function openInspect(id) {
+  const room = ROOMS[state.room];
+  const item = room.inspectItems[id];
+  if (!item) return;
+  document.getElementById('insp-title').textContent = item.title;
+  document.getElementById('insp-text').textContent = item.desc;
+  const svg = document.getElementById('insp-svg');
+  svg.innerHTML = '';
+  item.svgFn(svg);
+  document.getElementById('inspect-overlay').classList.add('open');
+}
+function closeInspect() {
+  document.getElementById('inspect-overlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════
+// PUZZLE DISPATCH
+// ═══════════════════════════════════════════════════════
+function openPuzzle(id) {
+  const room = ROOMS[state.room];
+  const puzz = room.puzzles[id];
+  if (!puzz) return;
+  if (state.solved[`${state.room}-${id}`]) { notify("Already solved!", "success"); return; }
+  document.getElementById('puzz-title').textContent = puzz.title;
+  const body = document.getElementById('puzz-body');
+  body.innerHTML = '';
+
+  const desc = document.createElement('div');
+  desc.className = 'puzzle-desc';
+  desc.textContent = puzz.desc;
+  body.appendChild(desc);
+
+  if (puzz.type === 'dials') buildDialPuzzle(body, puzz, id);
+  else if (puzz.type === 'word-input') buildWordInput(body, puzz, id);
+  else if (puzz.type === 'drag-order') buildDragOrder(body, puzz, id);
+  else if (puzz.type === 'wire') buildWirePuzzle(body, puzz, id);
+  else if (puzz.type === 'sliders') buildSliderPuzzle(body, puzz, id);
+
+  const hintBtn = document.createElement('button');
+  hintBtn.className = 'hint-toggle';
+  hintBtn.textContent = '[ need a hint? ]';
+  const hintBox = document.createElement('div');
+  hintBox.className = 'hint-box';
+  hintBox.textContent = puzz.hint;
+  hintBtn.onclick = () => { hintBox.style.display = hintBox.style.display === 'block' ? 'none' : 'block'; };
+  body.appendChild(hintBtn);
+  body.appendChild(hintBox);
+
+  const fb = document.createElement('div');
+  fb.className = 'feedback';
+  fb.id = 'puzz-fb';
+  body.appendChild(fb);
+
+  document.getElementById('puzzle-overlay').classList.add('open');
+}
+
+function closePuzzle() {
+  document.getElementById('puzzle-overlay').classList.remove('open');
+}
+
+function markSolved(roomIdx, puzzleId, puzz) {
+  state.solved[`${roomIdx}-${puzzleId}`] = true;
+  const fb = document.getElementById('puzz-fb');
+  if (fb) { fb.className = 'feedback good'; fb.textContent = puzz.onSolve ? '' : 'Solved!'; }
+  setTimeout(() => {
+    closePuzzle();
+    if (puzz.onSolve) puzz.onSolve();
+  }, 800);
+}
+
+function loseLife(msg) {
+  state.lives--;
+  renderLives();
+  notify(msg || 'Wrong — try again', 'error');
+  if (state.lives <= 0) setTimeout(() => showEnd(false), 1200);
+}
+
+// ── DIAL PUZZLE ──
+function buildDialPuzzle(body, puzz, puzzId) {
+  const dialValues = new Array(puzz.dials).fill(0);
+  const row = document.createElement('div');
+  row.className = 'dials-row';
+
+  dialValues.forEach((_, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'dial-wrap';
+    const lbl = document.createElement('div');
+    lbl.className = 'dial-lbl';
+    lbl.textContent = puzz.dialLabels ? puzz.dialLabels[i] : `DIAL ${i+1}`;
+
+    const arrowUp = document.createElement('button');
+    arrowUp.className = 'dial-arrow';
+    arrowUp.textContent = '▲';
+
+    const dial = document.createElement('div');
+    dial.className = 'dial';
+    dial.textContent = '0';
+    dial.id = `dial-${i}`;
+
+    const arrowDn = document.createElement('button');
+    arrowDn.className = 'dial-arrow';
+    arrowDn.textContent = '▼';
+
+    arrowUp.onclick = () => { dialValues[i] = (dialValues[i] + 1) % 10; dial.textContent = dialValues[i]; };
+    arrowDn.onclick = () => { dialValues[i] = (dialValues[i] + 9) % 10; dial.textContent = dialValues[i]; };
+    dial.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (e.deltaY < 0) { dialValues[i] = (dialValues[i] + 1) % 10; }
+      else { dialValues[i] = (dialValues[i] + 9) % 10; }
+      dial.textContent = dialValues[i];
+    });
+
+    wrap.appendChild(lbl);
+    wrap.appendChild(arrowUp);
+    wrap.appendChild(dial);
+    wrap.appendChild(arrowDn);
+    row.appendChild(wrap);
+  });
+  body.appendChild(row);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'btn-row';
+  const submitBtn = document.createElement('button');
+  submitBtn.className = 'btn primary';
+  submitBtn.textContent = 'Try Combination';
+  submitBtn.onclick = () => {
+    const correct = puzz.answer.every((v, i) => v === dialValues[i]);
+    if (correct) markSolved(state.room, puzzId, puzz);
+    else loseLife('Wrong combination — check your clues and try again.');
+  };
+  btnRow.appendChild(submitBtn);
+  body.appendChild(btnRow);
+}
+
+// ── WORD INPUT ──
+function buildWordInput(body, puzz, puzzId) {
+  const inp = document.createElement('input');
+  inp.className = 'puzz-input';
+  inp.maxLength = puzz.maxLen || 20;
+  inp.placeholder = 'Enter code...';
+  inp.style.textTransform = 'uppercase';
+  inp.style.letterSpacing = '0.2em';
+  inp.style.marginBottom = '12px';
+  body.appendChild(inp);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'btn-row';
+  const btn = document.createElement('button');
+  btn.className = 'btn primary';
+  btn.textContent = 'Confirm';
+  btn.onclick = () => {
+    const val = inp.value.trim().toUpperCase();
+    if (val === puzz.answer.toUpperCase()) {
+      inp.classList.add('correct');
+      markSolved(state.room, puzzId, puzz);
+    } else {
+      inp.classList.add('wrong');
+      setTimeout(() => inp.classList.remove('wrong'), 600);
+      loseLife('Wrong code — re-examine the racks.');
+    }
+  };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
+  btnRow.appendChild(btn);
+  body.appendChild(btnRow);
+}
+
+// ── DRAG ORDER ──
+function buildDragOrder(body, puzz, puzzId) {
+  const task = document.createElement('div');
+  task.className = 'puzzle-task';
+  task.textContent = 'Drag items from the source into the sequence slots in the correct order.';
+  body.appendChild(task);
+
+  // Source pool
+  const poolLabel = document.createElement('div');
+  poolLabel.className = 'slot-label';
+  poolLabel.textContent = 'AVAILABLE FLASKS:';
+  body.appendChild(poolLabel);
+
+  const pool = document.createElement('div');
+  pool.className = 'drag-area';
+  pool.id = 'drag-pool';
+
+  // Shuffled items
+  const shuffled = [...puzz.items].map((item, origIdx) => ({ item, origIdx }))
+    .sort(() => Math.random() - 0.5);
+
+  shuffled.forEach(({ item, origIdx }) => {
+    const d = document.createElement('div');
+    d.className = 'drag-item';
+    d.textContent = item;
+    d.draggable = true;
+    d.dataset.origIdx = origIdx;
+    d.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', origIdx);
+      d.classList.add('dragging');
+    });
+    d.addEventListener('dragend', () => d.classList.remove('dragging'));
+    pool.appendChild(d);
+  });
+  body.appendChild(pool);
+
+  // Slots
+  const slotsLabel = document.createElement('div');
+  slotsLabel.className = 'slot-label';
+  slotsLabel.style.marginTop = '12px';
+  slotsLabel.textContent = 'SEQUENCE (drop in order):';
+  body.appendChild(slotsLabel);
+
+  const slotsRow = document.createElement('div');
+  slotsRow.className = 'slots-row';
+  const slotData = new Array(puzz.items.length).fill(null);
+
+  for (let i = 0; i < puzz.items.length; i++) {
+    const col = document.createElement('div');
+    col.style.display = 'flex';
+    col.style.flexDirection = 'column';
+    col.style.alignItems = 'center';
+    col.style.gap = '4px';
+    const lbl = document.createElement('div');
+    lbl.className = 'slot-label';
+    lbl.textContent = `Step ${i+1}`;
+    const slot = document.createElement('div');
+    slot.className = 'drag-slot';
+    slot.dataset.slotIdx = i;
+    slot.textContent = 'drop here';
+
+    slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('over'); });
+    slot.addEventListener('dragleave', () => slot.classList.remove('over'));
+    slot.addEventListener('drop', e => {
+      e.preventDefault();
+      slot.classList.remove('over');
+      const origIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      // Remove from any previous slot
+      slotData.forEach((v, si) => { if (v === origIdx) slotData[si] = null; });
+      slotData[i] = origIdx;
+      slot.textContent = puzz.items[origIdx];
+      slot.classList.add('filled');
+    });
+    col.appendChild(lbl);
+    col.appendChild(slot);
+    slotsRow.appendChild(col);
+  }
+  body.appendChild(slotsRow);
+
+  // Pool also accepts drops (to return items)
+  pool.addEventListener('dragover', e => { e.preventDefault(); pool.classList.add('over'); });
+  pool.addEventListener('dragleave', () => pool.classList.remove('over'));
+  pool.addEventListener('drop', e => {
+    e.preventDefault();
+    pool.classList.remove('over');
+    const origIdx = parseInt(e.dataTransfer.getData('text/plain'));
+    slotData.forEach((v, si) => { if (v === origIdx) slotData[si] = null; });
+    // Update slot displays
+    slotsRow.querySelectorAll('.drag-slot').forEach((sl, si) => {
+      if (slotData[si] === null) { sl.textContent = 'drop here'; sl.classList.remove('filled'); }
+    });
+  });
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'btn-row';
+  btnRow.style.marginTop = '12px';
+  const btn = document.createElement('button');
+  btn.className = 'btn primary';
+  btn.textContent = 'Trigger Reaction';
+  btn.onclick = () => {
+    if (slotData.some(v => v === null)) { notify('Fill all slots first!', 'error'); return; }
+    const correct = puzz.answer.every((v, i) => v === slotData[i]);
+    const slots = slotsRow.querySelectorAll('.drag-slot');
+    if (correct) {
+      slots.forEach(s => s.classList.add('correct-slot'));
+      markSolved(state.room, puzzId, puzz);
+    } else {
+      slots.forEach((s, i) => {
+        s.classList.add(puzz.answer[i] === slotData[i] ? 'correct-slot' : 'wrong-slot');
+      });
+      loseLife('Wrong sequence — the reaction failed.');
+    }
+  };
+  btnRow.appendChild(btn);
+  body.appendChild(btnRow);
+}
+
+// ── WIRE PUZZLE ──
+function buildWirePuzzle(body, puzz, puzzId) {
+  const canvas = document.createElement('canvas');
+  canvas.id = 'wire-canvas';
+  canvas.width = 500;
+  canvas.height = 220;
+  canvas.style.cssText = 'display:block;cursor:crosshair;border:1px solid var(--border);border-radius:4px;background:#0d0a07;width:100%;max-width:500px;margin:0 auto';
+  body.appendChild(canvas);
+
+  const connections = new Array(puzz.pairs.length).fill(null);
+  let dragging = null;
+  let mousePos = { x: 0, y: 0 };
+
+  const leftX = 60, rightX = 440;
+  const spacing = 44, startY = 40;
+
+  function getLeftPos(i) { return { x: leftX, y: startY + i * spacing }; }
+  function getRightPos(i) { return { x: rightX, y: startY + i * spacing }; }
+
+  function draw() {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0d0a07';
+    ctx.fillRect(0, 0, W, H);
+
+    // Draw completed connections
+    connections.forEach((rightIdx, leftIdx) => {
+      if (rightIdx === null) return;
+      const lp = getLeftPos(leftIdx), rp = getRightPos(rightIdx);
+      ctx.beginPath();
+      ctx.moveTo(lp.x, lp.y);
+      ctx.bezierCurveTo(lp.x + 120, lp.y, rp.x - 120, rp.y, rp.x, rp.y);
+      ctx.strokeStyle = puzz.pairs[leftIdx].color;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    });
+
+    // Draw active drag line
+    if (dragging !== null) {
+      const lp = getLeftPos(dragging);
+      ctx.beginPath();
+      ctx.moveTo(lp.x, lp.y);
+      ctx.bezierCurveTo(lp.x + 80, lp.y, mousePos.x - 80, mousePos.y, mousePos.x, mousePos.y);
+      ctx.strokeStyle = puzz.pairs[dragging].color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Left terminals
+    puzz.pairs.forEach((p, i) => {
+      const pos = getLeftPos(i);
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = p.color;
+      ctx.font = '10px Share Tech Mono,monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(p.label, pos.x + 16, pos.y + 4);
+    });
+
+    // Right terminals
+    puzz.pairs.forEach((_, i) => {
+      const pos = getRightPos(i);
+      const isConnected = connections.some(c => c === i);
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
+      ctx.fillStyle = isConnected ? '#3a5a3a' : '#1a1a2a';
+      ctx.fill();
+      ctx.strokeStyle = isConnected ? '#80c090' : '#3a4060';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#6070a0';
+      ctx.font = '10px Share Tech Mono,monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(['A','B','C','D'][i], pos.x - 16, pos.y + 4);
+    });
+  }
+
+  function getCanvasCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  }
+
+  canvas.addEventListener('mousedown', e => {
+    const pos = getCanvasCoords(e);
+    puzz.pairs.forEach((_, i) => {
+      const lp = getLeftPos(i);
+      const dist = Math.hypot(pos.x - lp.x, pos.y - lp.y);
+      if (dist < 16) { dragging = i; connections[i] = null; draw(); }
+    });
+  });
+
+  canvas.addEventListener('mousemove', e => {
+    if (dragging === null) return;
+    mousePos = getCanvasCoords(e);
+    draw();
+  });
+
+  canvas.addEventListener('mouseup', e => {
+    if (dragging === null) return;
+    const pos = getCanvasCoords(e);
+    let connected = false;
+    puzz.pairs.forEach((_, i) => {
+      const rp = getRightPos(i);
+      const dist = Math.hypot(pos.x - rp.x, pos.y - rp.y);
+      if (dist < 20) { connections[dragging] = i; connected = true; }
+    });
+    dragging = null;
+    draw();
+
+    // Check if all connected correctly
+    const allCorrect = puzz.pairs.every((p, i) => connections[i] === p.match);
+    if (connections.every(c => c !== null) && !allCorrect) {
+      loseLife('Wrong wiring — check the logbook and try again.');
+      connections.fill(null);
+      draw();
+    } else if (allCorrect) {
+      markSolved(state.room, puzzId, puzz);
+    }
+  });
+
+  // Touch support
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY }));
+  }, { passive: false });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY }));
+  }, { passive: false });
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    canvas.dispatchEvent(new MouseEvent('mouseup', { clientX: touch.clientX, clientY: touch.clientY }));
+  }, { passive: false });
+
+  draw();
+
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'btn';
+  resetBtn.style.marginTop = '8px';
+  resetBtn.textContent = 'Reset Wires';
+  resetBtn.onclick = () => { connections.fill(null); draw(); };
+  body.appendChild(resetBtn);
+}
+
+// ── SLIDER PUZZLE ──
+function buildSliderPuzzle(body, puzz, puzzId) {
+  puzz.sliders.forEach((sl, i) => {
+    const info = document.createElement('div');
+    info.style.cssText = 'font-size:12px;color:var(--text3);font-family:Share Tech Mono,monospace;margin-bottom:4px';
+    info.textContent = sl.clue;
+    body.appendChild(info);
+
+    const row = document.createElement('div');
+    row.className = 'slider-row';
+
+    const lbl = document.createElement('label');
+    lbl.textContent = sl.label;
+
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = sl.min;
+    input.max = sl.max;
+    input.value = sl.value;
+    input.step = 1;
+    input.id = `slider-${i}`;
+
+    const val = document.createElement('div');
+    val.className = 'slider-val';
+    val.textContent = sl.value;
+
+    input.addEventListener('input', () => { val.textContent = input.value; });
+
+    row.appendChild(lbl);
+    row.appendChild(input);
+    row.appendChild(val);
+    body.appendChild(info);
+    body.appendChild(row);
+  });
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'btn-row';
+  btnRow.style.marginTop = '16px';
+  const btn = document.createElement('button');
+  btn.className = 'btn primary';
+  btn.textContent = 'Set Combination';
+  btn.onclick = () => {
+    const correct = puzz.sliders.every((sl, i) => {
+      const val = parseInt(document.getElementById(`slider-${i}`).value);
+      const tol = puzz.tolerance[i] || 0;
+      return Math.abs(val - puzz.answer[i]) <= tol;
+    });
+    if (correct) markSolved(state.room, puzzId, puzz);
+    else loseLife('Wrong values — think carefully about each clue.');
+  };
+  btnRow.appendChild(btn);
+  body.appendChild(btnRow);
+}
+
+// ═══════════════════════════════════════════════════════
+// INVENTORY
+// ═══════════════════════════════════════════════════════
+function addInventory(id, label) {
+  if (state.inventory.find(i => i.id === id)) return;
+  state.inventory.push({ id, label });
+  renderInventory();
+}
+
+function renderInventory() {
+  const el = document.getElementById('inv-items');
+  if (state.inventory.length === 0) {
+    el.innerHTML = '<span style="font-size:12px;color:var(--text3);font-family:Share Tech Mono,monospace">empty</span>';
+    return;
+  }
+  el.innerHTML = '';
+  state.inventory.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'inv-item';
+    btn.textContent = item.label;
+    el.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════
+function notify(msg, type) {
+  const container = document.getElementById('notify');
+  const el = document.createElement('div');
+  el.className = `notif ${type || ''}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 300);
+  }, 2500);
+}
+
+// ═══════════════════════════════════════════════════════
+// ADVANCE / END
+// ═══════════════════════════════════════════════════════
+function advanceRoom() {
+  state.room++;
+  if (state.room >= ROOMS.length) { showEnd(true); return; }
+  renderRoom();
+  window.scrollTo(0, 0);
+}
+
+function showEnd(won) {
+  clearInterval(state.timerInt);
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  const m = Math.floor(elapsed / 60), s = elapsed % 60;
+  const es = document.getElementById('end-screen');
+  document.getElementById('end-icon').textContent = won ? '🔓' : '💀';
+  document.getElementById('end-title').textContent = won ? 'You Escaped.' : 'You Didn\'t Make It.';
+  document.getElementById('end-body').textContent = won
+    ? 'Every lock picked. Every wire connected. Every formula calculated. Four chambers, one unbroken chain of logic. You walked out.'
+    : (state.lives <= 0 ? 'Three wrong answers. The system sealed you in permanently.' : 'The hour expired. The rooms reset without you.');
+  document.getElementById('end-meta').textContent = `Time: ${m}m ${s}s  |  Lives remaining: ${state.lives}`;
+  es.classList.add('show');
+}
+
+// ═══════════════════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════════════════
+function startTimer() {
+  clearInterval(state.timerInt);
+  state.timerInt = setInterval(() => {
+    state.timerSec--;
+    const m = Math.floor(state.timerSec / 60), s = state.timerSec % 60;
+    const el = document.getElementById('timer');
+    el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    el.className = 'timer' + (state.timerSec < 300 ? ' danger' : state.timerSec < 600 ? ' warn' : '');
+    if (state.timerSec <= 0) showEnd(false);
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════
+// RESTART
+// ═══════════════════════════════════════════════════════
+function restart() {
+  clearInterval(state.timerInt);
+  state = { room:0, lives:3, timerSec:3600, timerInt:null, startTime:Date.now(), inventory:[], solved:{}, roomsSolved:0 };
+  document.getElementById('end-screen').classList.remove('show');
+  renderInventory();
+  startTimer();
+  renderRoom();
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+startTimer();
+renderRoom();
+renderInventory();
 </script>
-
 </body>
 </html>
